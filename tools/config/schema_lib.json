@@ -13,9 +13,6 @@
     "target_overrides": {
       "$ref": "definitions.json#/target_overrides_definition"
     },
-    "requires": {
-      "$ref": "definitions.json#/requires_definition"
-    },
     "macros": {
       "$ref": "definitions.json#/macro_definition"
     }

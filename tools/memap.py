@@ -24,6 +24,11 @@ from sys import stdout, exit, argv, path
 from os import sep
 from os.path import (basename, dirname, join, relpath, abspath, commonprefix,
                      splitext)
+
+# Be sure that the tools directory is in the search path
+ROOT = abspath(join(dirname(__file__), ".."))
+path.insert(0, ROOT)
+
 import re
 import csv
 import json
@@ -34,16 +39,8 @@ from prettytable import PrettyTable, HEADER
 from jinja2 import FileSystemLoader, StrictUndefined
 from jinja2.environment import Environment
 
-
-# Be sure that the tools directory is in the search path
-ROOT = abspath(join(dirname(__file__), ".."))
-path.insert(0, ROOT)
-
-from tools.utils import (
-    argparse_filestring_type,
-    argparse_lowercase_hyphen_type,
-    argparse_uppercase_type
-)  # noqa: E402
+from tools.utils import (argparse_filestring_type, argparse_lowercase_hyphen_type,
+                         argparse_uppercase_type)
 
 
 class _Parser(object):
@@ -107,20 +104,13 @@ class _Parser(object):
 
 
 class _GccParser(_Parser):
-    RE_OBJECT_FILE = re.compile(r'^(.+\/.+\.o(bj)?)$')
-    RE_LIBRARY_OBJECT = re.compile(
-        r'^.+' + r''.format(sep) + r'lib((.+\.a)\((.+\.o(bj)?)\))$'
-    )
+    RE_OBJECT_FILE = re.compile(r'^(.+\/.+\.o)$')
+    RE_LIBRARY_OBJECT = re.compile(r'^.+' + r''.format(sep) + r'lib((.+\.a)\((.+\.o)\))$')
     RE_STD_SECTION = re.compile(r'^\s+.*0x(\w{8,16})\s+0x(\w+)\s(.+)$')
     RE_FILL_SECTION = re.compile(r'^\s*\*fill\*\s+0x(\w{8,16})\s+0x(\w+).*$')
-    OBJECT_EXTENSIONS = (".o", ".obj")
 
-    ALL_SECTIONS = (
-        _Parser.SECTIONS
-        + _Parser.OTHER_SECTIONS
-        + _Parser.MISC_FLASH_SECTIONS
-        + ('unknown', 'OUTPUT')
-    )
+    ALL_SECTIONS = _Parser.SECTIONS + _Parser.OTHER_SECTIONS + \
+                   _Parser.MISC_FLASH_SECTIONS + ('unknown', 'OUTPUT')
 
     def check_new_section(self, line):
         """ Check whether a new section in a map file has been detected
@@ -128,17 +118,19 @@ class _GccParser(_Parser):
         Positional arguments:
         line - the line to check for a new section
 
-        return value - A section name, if a new section was found, None
+        return value - A section name, if a new section was found, False
                        otherwise
         """
-        line_s = line.strip()
         for i in self.ALL_SECTIONS:
-            if line_s.startswith(i):
+            if line.startswith(i):
+                # should name of the section (assuming it's a known one)
                 return i
+
         if line.startswith('.'):
-            return 'unknown'
+            return 'unknown'     # all others are classified are unknown
         else:
-            return None
+            return False         # everything else, means no change in section
+
 
     def parse_object_name(self, line):
         """ Parse a path to object file
@@ -165,10 +157,8 @@ class _GccParser(_Parser):
                 return join('[lib]', test_re_obj_name.group(2),
                             test_re_obj_name.group(3))
             else:
-                if (
-                    not line.startswith("LONG") and
-                    not line.startswith("linker stubs")
-                ):
+                if (not line.startswith("LONG") and
+                    not line.startswith("linker stubs")):
                     print("Unknown object name found in GCC map file: %s"
                           % line)
                 return '[misc]'
@@ -177,8 +167,8 @@ class _GccParser(_Parser):
         """ Parse data from a section of gcc map file
 
         examples:
-                        0x00004308       0x7c ./BUILD/K64F/GCC_ARM/spi_api.o
-         .text          0x00000608      0x198 ./BUILD/K64F/HAL_CM4.o
+                        0x00004308       0x7c ./BUILD/K64F/GCC_ARM/mbed-os/hal/targets/hal/TARGET_Freescale/TARGET_KPSDK_MCUS/spi_api.o
+         .text          0x00000608      0x198 ./BUILD/K64F/GCC_ARM/mbed-os/core/mbed-rtos/rtx/TARGET_CORTEX_M/TARGET_RTOS_M4_M7/TOOLCHAIN/HAL_CM4.o
 
         Positional arguments:
         line - the line to parse a section from
@@ -224,16 +214,12 @@ class _GccParser(_Parser):
                 self.module_add(object_name, object_size, current_section)
 
         common_prefix = dirname(commonprefix([
-            o for o in self.modules.keys()
-            if (
-                    o.endswith(self.OBJECT_EXTENSIONS)
-                    and not o.startswith("[lib]")
-            )]))
+            o for o in self.modules.keys() if (o.endswith(".o") and not o.startswith("[lib]"))]))
         new_modules = {}
         for name, stats in self.modules.items():
             if name.startswith("[lib]"):
                 new_modules[name] = stats
-            elif name.endswith(self.OBJECT_EXTENSIONS):
+            elif name.endswith(".o"):
                 new_modules[relpath(name, common_prefix)] = stats
             else:
                 new_modules[name] = stats
@@ -243,8 +229,7 @@ class _GccParser(_Parser):
 class _ArmccParser(_Parser):
     RE = re.compile(
         r'^\s+0x(\w{8})\s+0x(\w{8})\s+(\w+)\s+(\w+)\s+(\d+)\s+[*]?.+\s+(.+)$')
-    RE_OBJECT = re.compile(r'(.+\.(l|ar))\((.+\.o(bj)?)\)')
-    OBJECT_EXTENSIONS = (".o", ".obj")
+    RE_OBJECT = re.compile(r'(.+\.(l|ar))\((.+\.o)\)')
 
     def parse_object_name(self, line):
         """ Parse object file
@@ -252,19 +237,15 @@ class _ArmccParser(_Parser):
         Positional arguments:
         line - the line containing the object or library
         """
-        if line.endswith(self.OBJECT_EXTENSIONS):
+        if line.endswith(".o"):
             return line
 
         else:
             is_obj = re.match(self.RE_OBJECT, line)
             if is_obj:
-                return join(
-                    '[lib]', basename(is_obj.group(1)), is_obj.group(3)
-                )
+                return join('[lib]', basename(is_obj.group(1)), is_obj.group(3))
             else:
-                print(
-                    "Malformed input found when parsing ARMCC map: %s" % line
-                )
+                print("Malformed input found when parsing ARMCC map: %s" % line)
                 return '[misc]'
 
     def parse_section(self, line):
@@ -277,7 +258,7 @@ class _ArmccParser(_Parser):
 
         Positional arguments:
         line - the line to parse the section data from
-        """  # noqa: E501
+        """
         test_re = re.match(self.RE, line)
 
         if test_re:
@@ -293,10 +274,8 @@ class _ArmccParser(_Parser):
                 elif test_re.group(3) == 'Code':
                     section = '.text'
                 else:
-                    print(
-                        "Malformed input found when parsing armcc map: %s, %r"
-                        % (line, test_re.groups())
-                    )
+                    print("Malformed input found when parsing armcc map: %s, %r"
+                          % (line, test_re.groups()))
 
                     return ["", 0, ""]
 
@@ -326,22 +305,12 @@ class _ArmccParser(_Parser):
                 self.module_add(*self.parse_section(line))
 
         common_prefix = dirname(commonprefix([
-            o for o in self.modules.keys()
-            if (
-                o.endswith(self.OBJECT_EXTENSIONS)
-                and o != "anon$$obj.o"
-                and o != "anon$$obj.obj"
-                and not o.startswith("[lib]")
-            )]))
+            o for o in self.modules.keys() if (o.endswith(".o") and o != "anon$$obj.o" and not o.startswith("[lib]"))]))
         new_modules = {}
         for name, stats in self.modules.items():
-            if (
-                name == "anon$$obj.o"
-                or name == "anon$$obj.obj"
-                or name.startswith("[lib]")
-            ):
+            if name == "anon$$obj.o" or name.startswith("[lib]"):
                 new_modules[name] = stats
-            elif name.endswith(self.OBJECT_EXTENSIONS):
+            elif name.endswith(".o"):
                 new_modules[relpath(name, common_prefix)] = stats
             else:
                 new_modules[name] = stats
@@ -353,10 +322,9 @@ class _IarParser(_Parser):
         r'^\s+(.+)\s+(zero|const|ro code|inited|uninit)\s'
         r'+0x([\'\w]+)\s+0x(\w+)\s+(.+)\s.+$')
 
-    RE_CMDLINE_FILE = re.compile(r'^#\s+(.+\.o(bj)?)')
+    RE_CMDLINE_FILE = re.compile(r'^#\s+(.+\.o)')
     RE_LIBRARY = re.compile(r'^(.+\.a)\:.+$')
-    RE_OBJECT_LIBRARY = re.compile(r'^\s+(.+\.o(bj)?)\s.*')
-    OBJECT_EXTENSIONS = (".o", ".obj")
+    RE_OBJECT_LIBRARY = re.compile(r'^\s+(.+\.o)\s.*')
 
     def __init__(self):
         _Parser.__init__(self)
@@ -370,7 +338,7 @@ class _IarParser(_Parser):
         Positional arguments:
         line - the line containing the object or library
         """
-        if object_name.endswith(self.OBJECT_EXTENSIONS):
+        if object_name.endswith(".o"):
             try:
                 return self.cmd_modules[object_name]
             except KeyError:
@@ -394,13 +362,11 @@ class _IarParser(_Parser):
 
         Positional_arguments:
         line - the line to parse section data from
-        """  # noqa: E501
+        """
         test_re = re.match(self.RE, line)
         if test_re:
-            if (
-                test_re.group(2) == 'const' or
-                test_re.group(2) == 'ro code'
-            ):
+            if (test_re.group(2) == 'const' or
+                test_re.group(2) == 'ro code'):
                 section = '.text'
             elif (test_re.group(2) == 'zero' or
                   test_re.group(2) == 'uninit'):
@@ -409,7 +375,7 @@ class _IarParser(_Parser):
                 elif test_re.group(1)[0:6] == 'CSTACK':
                     section = '.stack'
                 else:
-                    section = '.bss'  # default section
+                    section = '.bss' #  default section
 
             elif test_re.group(2) == 'inited':
                 section = '.data'
@@ -440,8 +406,7 @@ class _IarParser(_Parser):
 
     def check_new_object_lib(self, line):
         """
-        Searches for objects within a library section and returns name.
-        Example:
+        Searches for objects within a library section and returns name. Example:
         rt7M_tl.a: [44]
             ABImemclr4.o                 6
             ABImemcpy_unaligned.o      118
@@ -467,10 +432,7 @@ class _IarParser(_Parser):
                 break
             for arg in line.split(" "):
                 arg = arg.rstrip(" \n")
-                if (
-                    not arg.startswith("-")
-                    and arg.endswith(self.OBJECT_EXTENSIONS)
-                ):
+                if (not arg.startswith("-")) and arg.endswith(".o"):
                     self.cmd_modules[basename(arg)] = arg
 
         common_prefix = dirname(commonprefix(list(self.cmd_modules.values())))
@@ -493,7 +455,7 @@ class _IarParser(_Parser):
             for line in infile:
                 self.module_add(*self.parse_section(line))
 
-                if line.startswith('*** MODULE SUMMARY'):  # finish section
+                if line.startswith('*** MODULE SUMMARY'): # finish section
                     break
 
             current_library = ""
@@ -519,6 +481,7 @@ class MemapParser(object):
     print_sections = ('.text', '.data', '.bss')
     delta_sections = ('.text-delta', '.data-delta', '.bss-delta')
 
+
     # sections to print info (generic for all toolchains)
     sections = _Parser.SECTIONS
     misc_flash_sections = _Parser.MISC_FLASH_SECTIONS
@@ -531,6 +494,7 @@ class MemapParser(object):
         self.old_modules = None
         # short version with specific depth
         self.short_modules = dict()
+
 
         # Memory report (sections + summary)
         self.mem_report = []
@@ -561,7 +525,7 @@ class MemapParser(object):
         mbed-os/drivers
 
         """
-        if depth == 0 or depth is None:
+        if depth == 0 or depth == None:
             self.short_modules = deepcopy(self.modules)
         else:
             self.short_modules = dict()
@@ -572,9 +536,8 @@ class MemapParser(object):
                 new_name = join(*split_name[:depth])
                 self.short_modules.setdefault(new_name, defaultdict(int))
                 for section_idx, value in v.items():
-                    self.short_modules[new_name][section_idx] += value
-                    delta_name = section_idx + '-delta'
-                    self.short_modules[new_name][delta_name] += value
+                    self.short_modules[new_name][section_idx] += self.modules[module_name][section_idx]
+                    self.short_modules[new_name][section_idx + '-delta'] += self.modules[module_name][section_idx]
             if self.old_modules:
                 for module_name, v in self.old_modules.items():
                     split_name = module_name.split(sep)
@@ -583,8 +546,7 @@ class MemapParser(object):
                     new_name = join(*split_name[:depth])
                     self.short_modules.setdefault(new_name, defaultdict(int))
                     for section_idx, value in v.items():
-                        delta_name = section_idx + '-delta'
-                        self.short_modules[new_name][delta_name] -= value
+                        self.short_modules[new_name][section_idx + '-delta'] -= self.old_modules[module_name][section_idx]
 
     export_formats = ["json", "csv-ci", "html", "table"]
 
@@ -692,10 +654,7 @@ class MemapParser(object):
                     if not modules:
                         break
                     next_module = modules.pop(0)
-                    if not any(
-                        cld['name'] == next_module
-                        for cld in cur_text['children']
-                    ):
+                    if not any(cld['name'] == next_module for cld in cur_text['children']):
                         break
                     cur_text = self._move_up_tree(cur_text, next_module)
                     cur_data = self._move_up_tree(cur_data, next_module)
@@ -797,10 +756,8 @@ class MemapParser(object):
             row = [i]
 
             for k in self.print_sections:
-                row.append("{}({:+})".format(
-                    self.short_modules[i][k],
-                    self.short_modules[i][k + "-delta"]
-                ))
+                row.append("{}({:+})".format(self.short_modules[i][k],
+                                             self.short_modules[i][k + "-delta"]))
 
             table.add_row(row)
 
@@ -855,7 +812,7 @@ class MemapParser(object):
             for name, sizes in sorted(self.short_modules.items()):
                 self.mem_report.append({
                     "module": name,
-                    "size": {
+                    "size":{
                         k: sizes.get(k, 0) for k in (self.print_sections +
                                                      self.delta_sections)
                     }
@@ -894,7 +851,6 @@ class MemapParser(object):
         except IOError as error:
             print("I/O error({0}): {1}".format(error.errno, error.strerror))
             return False
-
 
 def main():
     """Entry Point"""
@@ -953,20 +909,16 @@ def main():
 
     returned_string = None
     # Write output in file
-    if args.output is not None:
-        returned_string = memap.generate_output(
-            args.export,
-            depth,
-            args.output
-        )
-    else:  # Write output in screen
+    if args.output != None:
+        returned_string = memap.generate_output(args.export, \
+            depth, args.output)
+    else: # Write output in screen
         returned_string = memap.generate_output(args.export, depth)
 
     if args.export == 'table' and returned_string:
         print(returned_string)
 
     exit(0)
-
 
 if __name__ == "__main__":
     main()

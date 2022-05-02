@@ -88,10 +88,8 @@ _ENV_PATHS = ['ARM_PATH', 'GCC_ARM_PATH', 'IAR_PATH', 'ARMC6_PATH']
 
 for _n in _ENV_PATHS:
     if getenv('MBED_'+_n):
-        # It's common to provide paths with quotes for certain OSes
-        env_path = getenv('MBED_'+_n).strip("\"'")
-        if exists(env_path):
-            globals()[_n] = env_path
+        if exists(getenv('MBED_'+_n)):
+            globals()[_n] = getenv('MBED_'+_n)
         else:
             print("WARNING: MBED_%s set as environment variable but doesn't"
                   " exist" % _n)

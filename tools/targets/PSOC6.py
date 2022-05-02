@@ -96,7 +96,7 @@ def patch(message_func, ihex, hexf, align=256):
             aligned_end += align
             message_func("Aligning end from 0x%x to 0x%x" % (end, aligned_end))
             alignments.frombytes(ihex.tobinarray(end, aligned_end - 1), end)
-    ihex.merge(alignments, 'ignore')
+    ihex.merge(alignments)
 
 def merge_images(hexf0, hexf1=None):
     ihex = IntelHex()
@@ -116,19 +116,17 @@ def complete_func(message_func, elf0, hexf0, hexf1=None, dest=None):
 
 # Find Cortex M0 image.
 def find_cm0_image(toolchain, resources, elf, hexf, hex_filename):
-    if hex_filename is None:
-        return None
     # Locate user-specified image
     from tools.resources import FileType
     hex_files = resources.get_file_paths(FileType.HEX)
     m0hexf = next((f for f in hex_files if os.path.basename(f) == hex_filename), None)
-    if toolchain.target.is_PSA_non_secure_target:
+    if toolchain.target.name.endswith('_PSA'):
         m0hexf = next((f for f in hex_files if os.path.basename(f) == os.path.basename(hexf)), m0hexf)
 
     if m0hexf:
-        toolchain.notify.info("M0 core image file found: %s." % m0hexf)
+        toolchain.notify.debug("M0 core image file found: %s." % os.path.basename(m0hexf))
     else:
-        toolchain.notify.info("M0 core hex image file %s not found. Aborting." % hex_filename)
+        toolchain.notify.debug("M0 core hex image file %s not found. Aborting." % hex_filename)
         raise ConfigException("Required M0 core hex image not found.")
 
     return m0hexf
