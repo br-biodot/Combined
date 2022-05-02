@@ -495,7 +495,11 @@ HAL_StatusTypeDef HAL_DMA_Start_IT(DMA_HandleTypeDef *hdma, uint32_t SrcAddress,
     
     /* Enable Common interrupts*/
     hdma->Instance->CR  |= DMA_IT_TC | DMA_IT_TE | DMA_IT_DME;
-    hdma->Instance->FCR |= DMA_IT_FE;
+	// From: https://community.st.com/s/question/0D50X00009XkgxPSAR/fifo-error-from-dma-to-dac-caused-by-cubemx-when-can-it-be-fixed
+	if (hdma->Init.FIFOMode == DMA_FIFOMODE_ENABLE)  // If FIFOMode enabled
+    {
+      hdma->Instance->FCR |= DMA_IT_FE;  // Only enable FIFO Errors if FIFOMode enabled
+    }
     
     if(hdma->XferHalfCpltCallback != NULL)
     {

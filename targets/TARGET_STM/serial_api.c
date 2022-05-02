@@ -463,6 +463,38 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
     init_uart(obj);
 }
 
+const PinMap *serial_tx_pinmap()
+{
+    return PinMap_UART_TX;
+}
+
+const PinMap *serial_rx_pinmap()
+{
+    return PinMap_UART_RX;
+}
+
+const PinMap *serial_cts_pinmap()
+{
+#if !DEVICE_SERIAL_FC
+    static const PinMap PinMap_UART_CTS[] = {
+        {NC, NC, 0}
+    };
+#endif
+
+    return PinMap_UART_CTS;
+}
+
+const PinMap *serial_rts_pinmap()
+{
+#if !DEVICE_SERIAL_FC
+    static const PinMap PinMap_UART_RTS[] = {
+        {NC, NC, 0}
+    };
+#endif
+
+    return PinMap_UART_RTS;
+}
+
 /******************************************************************************
  * READ/WRITE
  ******************************************************************************/
@@ -536,12 +568,12 @@ HAL_StatusTypeDef init_uart(serial_t *obj)
 #if defined(LPUART1_BASE)
     if (huart->Instance == LPUART1) {
         if (obj_s->baudrate <= 9600) {
-#if ((MBED_CONF_TARGET_LPUART_CLOCK_SOURCE) & USE_LPUART_CLK_LSE) && !TARGET_STM32H7
+#if ((MBED_CONF_TARGET_LPUART_CLOCK_SOURCE) & USE_LPUART_CLK_LSE) && !TARGET_STM32H7 && !TARGET_STM32WB
             HAL_UARTEx_EnableClockStopMode(huart);
 #endif
             HAL_UARTEx_EnableStopMode(huart);
         } else {
-#if !TARGET_STM32H7
+#if (!defined(TARGET_STM32H7) && !defined(TARGET_STM32WB))
             HAL_UARTEx_DisableClockStopMode(huart);
 #endif
             HAL_UARTEx_DisableStopMode(huart);
