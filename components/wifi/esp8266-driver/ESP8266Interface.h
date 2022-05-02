@@ -17,9 +17,8 @@
 #ifndef ESP8266_INTERFACE_H
 #define ESP8266_INTERFACE_H
 
-#if DEVICE_SERIAL && DEVICE_INTERRUPTIN && defined(MBED_CONF_EVENTS_PRESENT) && defined(MBED_CONF_NSAPI_PRESENT) && defined(MBED_CONF_RTOS_PRESENT)
+#if DEVICE_SERIAL && defined(MBED_CONF_EVENTS_PRESENT) && defined(MBED_CONF_NSAPI_PRESENT) && defined(MBED_CONF_RTOS_PRESENT)
 #include "drivers/DigitalOut.h"
-#include "drivers/Timer.h"
 #include "ESP8266/ESP8266.h"
 #include "events/EventQueue.h"
 #include "events/mbed_shared_queues.h"
@@ -34,9 +33,6 @@
 #include "rtos/Mutex.h"
 
 #define ESP8266_SOCKET_COUNT 5
-
-#define ESP8266_INTERFACE_CONNECT_INTERVAL_MS (5000)
-#define ESP8266_INTERFACE_CONNECT_TIMEOUT_MS (2 * ESP8266_CONNECT_TIMEOUT + ESP8266_INTERFACE_CONNECT_INTERVAL_MS)
 
 #ifdef TARGET_FF_ARDUINO
 #ifndef MBED_CONF_ESP8266_TX
@@ -85,9 +81,6 @@ public:
     /** Start the interface
      *
      *  Attempts to connect to a WiFi network.
-     *
-     *  If interface is configured blocking it will timeout after up to
-     *  ESP8266_INTERFACE_CONNECT_TIMEOUT_MS + ESP8266_CONNECT_TIMEOUT ms.
      *
      *  @param ssid      Name of the network to connect to
      *  @param pass      Security passphrase to connect to the network
@@ -335,7 +328,7 @@ protected:
 private:
     // AT layer
     ESP8266 _esp;
-    void refresh_conn_state_cb();
+    void update_conn_state_cb();
 
     // HW reset pin
     class ResetPin {
@@ -362,7 +355,6 @@ private:
 
     // connect status reporting
     nsapi_error_t _conn_status_to_error();
-    mbed::Timer _conn_timer;
 
     // Drivers's socket info
     struct _sock_info {
@@ -373,19 +365,17 @@ private:
 
     // Driver's state
     int _initialized;
-    nsapi_error_t _connect_retval;
     bool _get_firmware_ok();
     nsapi_error_t _init(void);
-    nsapi_error_t _reset();
+    void _hw_reset();
+    nsapi_error_t _connect_retval;
 
     //sigio
     struct {
         void (*callback)(void *);
         void *data;
-        uint8_t deferred;
     } _cbs[ESP8266_SOCKET_COUNT];
     void event();
-    void event_deferred();
 
     // Connection state reporting to application
     nsapi_connection_status_t _conn_stat;
@@ -397,6 +387,7 @@ private:
     int _oob_event_id;
     int _connect_event_id;
     void proc_oob_evnt();
+    void _oob2global_event_queue();
     void _connect_async();
     rtos::Mutex _cmutex; // Protect asynchronous connection logic
 
