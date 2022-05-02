@@ -65,6 +65,7 @@ public:
     */
     Queue()
     {
+        memset(&_obj_mem, 0, sizeof(_obj_mem));
         osMessageQueueAttr_t attr = { 0 };
         attr.mq_mem = _queue_mem;
         attr.mq_size = sizeof(_queue_mem);

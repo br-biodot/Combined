@@ -31,9 +31,7 @@
         .equ     DOMAIN_NS, 0
 #endif
 
-#if defined (__VFP_FP__) && !defined(__SOFTFP__)
-        .equ     __FPU_USED,  1
-#else
+#ifndef  __FPU_USED
         .equ     __FPU_USED,  0
 #endif
 
