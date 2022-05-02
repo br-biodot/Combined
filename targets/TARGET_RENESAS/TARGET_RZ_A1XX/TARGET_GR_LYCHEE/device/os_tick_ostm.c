@@ -26,8 +26,10 @@
 
 #include "os_tick.h"
 #include "irq_ctrl.h"
-#include "cmsis.h"
-#include "mbed_drv_cfg.h"
+
+#include <MBRZA1LU.h>
+
+#include <cmsis.h>
 
 
 // Define OS TImer interrupt priority
@@ -60,15 +62,15 @@ int32_t OS_Tick_Setup (uint32_t freq, IRQHandler_t handler)
   // Get CPG.FRQCR[IFC] bits
   clock = (CPG.FRQCR >> 8) & 0x03;
 
-  // Determine Divider 2 output clock by using RENESAS_RZ_A1_P0_CLK
+  // Determine Divider 2 output clock by using SystemCoreClock
   if (clock == 0x03U) {
-    clock = (RENESAS_RZ_A1_P0_CLK * 3U);
+    clock = (SystemCoreClock * 3U);
   }
   else if (clock == 0x01U) {
-    clock = (RENESAS_RZ_A1_P0_CLK * 3U)/2U;
+    clock = (SystemCoreClock * 3U)/2U;
   }
   else {
-    clock = RENESAS_RZ_A1_P0_CLK;
+    clock = SystemCoreClock;
   }
 
   // Determine tick frequency
@@ -142,8 +144,7 @@ void  OS_Tick_Enable (void)
 }
 
 /// Disable OS Tick.
-void  OS_Tick_Disable (void)
-{
+void  OS_Tick_Disable (void) {
 
   // Stop the OSTM counter
   OSTM.OSTMnTT = 0x01U;
@@ -155,7 +156,7 @@ void  OS_Tick_Disable (void)
 }
 
 // Acknowledge OS Tick IRQ.
-void  OS_Tick_AcknowledgeIRQ (void)
+void OS_Tick_AcknowledgeIRQ (void)
 {
   IRQ_ClearPending (OSTM_IRQn);
 }

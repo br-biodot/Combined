@@ -16,8 +16,7 @@
 
 #include "device.h"
 #include "flash_api.h"
-#include "cy_flash.h"
-#include <string.h>
+#include "drivers/peripheral/flash/cy_flash.h"
 
 #if DEVICE_FLASH
 
@@ -48,27 +47,10 @@ int32_t flash_program_page(flash_t *obj, uint32_t address, const uint8_t *data, 
 {
     (void)(obj);
     int32_t status = 0;
-    static uint32_t prog_buf[CY_FLASH_SIZEOF_ROW / sizeof(uint32_t)];
-    while (size) {
-        uint32_t offset = address % CY_FLASH_SIZEOF_ROW;
-        uint32_t chunk_size;
-        if (offset + size > CY_FLASH_SIZEOF_ROW) {
-            chunk_size = CY_FLASH_SIZEOF_ROW - offset;
-        } else {
-            chunk_size = size;
-        }
-        uint32_t row_address = address / CY_FLASH_SIZEOF_ROW * CY_FLASH_SIZEOF_ROW;
-        memcpy(prog_buf, (const void *)row_address, CY_FLASH_SIZEOF_ROW);
-        memcpy((uint8_t *)prog_buf + offset, data, chunk_size);
-
-        if (Cy_Flash_ProgramRow(row_address, (const uint32_t *)prog_buf) != CY_FLASH_DRV_SUCCESS) {
-            status = -1;
-        }
-        address += chunk_size;
-        size -= chunk_size;
+    if (Cy_Flash_ProgramRow(address, (const uint32_t *)data) != CY_FLASH_DRV_SUCCESS) {
+        status = -1;
     }
 
-    Cy_SysLib_ClearFlashCacheAndBuffer();
     return status;
 }
 
@@ -85,7 +67,7 @@ uint32_t flash_get_sector_size(const flash_t *obj, uint32_t address)
 uint32_t flash_get_page_size(const flash_t *obj)
 {
     (void)(obj);
-    return CY_FLASH_EFFECTIVE_PAGE_SIZE;
+    return CY_FLASH_SIZEOF_ROW;
 }
 
 uint32_t flash_get_start_address(const flash_t *obj)

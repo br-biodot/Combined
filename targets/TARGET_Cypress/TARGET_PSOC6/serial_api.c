@@ -33,8 +33,6 @@
 #include "cy_gpio.h"
 #include "cy_scb_uart.h"
 #include "cy_sysint.h"
-#include "cycfg_pins.h"
-#include "cycfg_peripherals.h"
 
 #define UART_OVERSAMPLE                 12
 #define UART_DEFAULT_BAUDRATE           115200
@@ -43,12 +41,6 @@
 
 #define UART_RX_INTR_MASK   (CY_SCB_UART_RX_TRIGGER   | CY_SCB_UART_RX_OVERFLOW  | \
                              CY_SCB_UART_RX_ERR_FRAME | CY_SCB_UART_RX_ERR_PARITY)
-
-#ifdef MBED_TICKLESS
-#define SERIAL_PM_CALLBACK_ENABLED 1
-#else
-#define SERIAL_PM_CALLBACK_ENABLED 0
-#endif
 
 typedef struct serial_s serial_obj_t;
 #if DEVICE_SERIAL_ASYNCH
@@ -99,7 +91,7 @@ static const cy_stc_scb_uart_config_t default_uart_config = {
 };
 
 /* STDIO serial information  */
-int stdio_uart_inited = 0;
+bool stdio_uart_inited = false;
 serial_t stdio_uart;
 
 int bt_uart_inited = false;
@@ -128,10 +120,6 @@ static irq_info_t irq_info[NUM_SERIAL_PORTS] = {
     {NULL, NULL, 0, unconnected_IRQn}
 };
 
-static uint32_t Cy_SCB_UART_GetRtsAcitvePolarity(CySCB_Type const *base)
-{
-    return _FLD2VAL(SCB_UART_FLOW_CTRL_RTS_POLARITY, SCB_UART_FLOW_CTRL(base));
-}
 
 /** Routes interrupt to proper SCB block.
  *
@@ -310,7 +298,6 @@ static cy_en_sysclk_status_t serial_init_clock(serial_obj_t *obj, uint32_t baudr
             }
         }
     } else {
-        /* Divider already allocated and connected to the SCB block */
         status = CY_SYSCLK_SUCCESS;
     }
 
@@ -318,17 +305,17 @@ static cy_en_sysclk_status_t serial_init_clock(serial_obj_t *obj, uint32_t baudr
         Cy_SysClk_PeriphDisableDivider(obj->div_type, obj->div_num);
 
         /* Set baud rate */
-        if ((obj->div_type == CY_SYSCLK_DIV_16_5_BIT) || (obj->div_type == CY_SYSCLK_DIV_24_5_BIT)) {
+        if (obj->div_type == CY_SYSCLK_DIV_16_5_BIT) {
             /* Get fractional divider */
             uint32_t divider = divider_value(baudrate * UART_OVERSAMPLE, 5U);
 
-            status = Cy_SysClk_PeriphSetFracDivider(obj->div_type,
+            status = Cy_SysClk_PeriphSetFracDivider(CY_SYSCLK_DIV_16_5_BIT,
                                                     obj->div_num,
                                                     FRACT_DIV_INT(divider),
                                                     FRACT_DIV_FARCT(divider));
         } else {
             /* Get integer divider */
-            status = Cy_SysClk_PeriphSetDivider(obj->div_type,
+            status = Cy_SysClk_PeriphSetDivider(CY_SYSCLK_DIV_16_BIT,
                                                 obj->div_num,
                                                 divider_value(baudrate * UART_OVERSAMPLE, 0));
         }
@@ -395,6 +382,7 @@ static void serial_init_peripheral(serial_obj_t *obj)
     Cy_SCB_UART_Enable(obj->base);
 }
 
+
 /*
  * Callback function to handle into and out of deep sleep state transitions.
  */
@@ -403,8 +391,6 @@ static cy_en_syspm_status_t serial_pm_callback(cy_stc_syspm_callback_params_t *c
 {
     serial_obj_t *obj = (serial_obj_t *) callbackParams->context;
     cy_en_syspm_status_t status = CY_SYSPM_FAIL;
-    GPIO_PRT_Type *port_tx = Cy_GPIO_PortToAddr(CY_PORT(obj->pin_tx));
-    GPIO_PRT_Type *port_rts = Cy_GPIO_PortToAddr(CY_PORT(obj->pin_rts));
 
     switch (mode) {
         case CY_SYSPM_CHECK_READY:
@@ -414,17 +400,6 @@ static cy_en_syspm_status_t serial_pm_callback(cy_stc_syspm_callback_params_t *c
             */
             if (Cy_SCB_UART_IsTxComplete(obj->base)) {
                 if (0 == Cy_SCB_UART_GetNumInRxFifo(obj->base)) {
-                    /* Configure RTS and TX GPIO DR register to drive output (high) */
-                    if(obj->pin_rts != NC) {
-                        uint32_t rts_polarity = Cy_SCB_UART_GetRtsAcitvePolarity(obj->base);
-                        uint32_t rts_value = ((rts_polarity == CY_SCB_UART_ACTIVE_LOW) ? CY_SCB_UART_ACTIVE_HIGH : CY_SCB_UART_ACTIVE_LOW);
-                        Cy_GPIO_Write   (port_rts, CY_PIN(obj->pin_rts), rts_value);
-                        Cy_GPIO_SetHSIOM(port_rts, CY_PIN(obj->pin_rts), HSIOM_SEL_GPIO);
-                    }
-
-                    Cy_GPIO_Write   (port_tx, CY_PIN(obj->pin_tx), 1);
-                    Cy_GPIO_SetHSIOM(port_tx, CY_PIN(obj->pin_tx), HSIOM_SEL_GPIO);
-
                     /* Disable the UART. The transmitter stops driving the
                     * lines and the receiver stops receiving data until
                     * the UART is enabled.
@@ -437,16 +412,10 @@ static cy_en_syspm_status_t serial_pm_callback(cy_stc_syspm_callback_params_t *c
             }
             break;
 
+
         case CY_SYSPM_CHECK_FAIL:
             /* Enable the UART to operate */
             Cy_SCB_UART_Enable(obj->base);
-            /* Return SCB control on TX and RTS output pins */
-            if(obj->pin_rts != NC) {
-                Cy_GPIO_SetHSIOM(port_rts, CY_PIN(obj->pin_rts), CY_PIN_HSIOM(pinmap_function(obj->pin_rts, PinMap_UART_RTS)));
-            }
-
-            Cy_GPIO_SetHSIOM(port_tx, CY_PIN(obj->pin_tx), CY_PIN_HSIOM(pinmap_function(obj->pin_tx, PinMap_UART_TX)));
-
             status = CY_SYSPM_SUCCESS;
             break;
 
@@ -457,13 +426,6 @@ static cy_en_syspm_status_t serial_pm_callback(cy_stc_syspm_callback_params_t *c
         case CY_SYSPM_AFTER_TRANSITION:
             /* Enable the UART to operate */
             Cy_SCB_UART_Enable(obj->base);
-            /* Return SCB control on TX and RTS output pins */
-            if(obj->pin_rts != NC) {
-                Cy_GPIO_SetHSIOM(port_rts, CY_PIN(obj->pin_rts), CY_PIN_HSIOM(pinmap_function(obj->pin_rts, PinMap_UART_RTS)));
-            }
-
-            Cy_GPIO_SetHSIOM(port_tx, CY_PIN(obj->pin_tx), CY_PIN_HSIOM(pinmap_function(obj->pin_tx, PinMap_UART_TX)));
-
             status = CY_SYSPM_SUCCESS;
             break;
 
@@ -474,6 +436,7 @@ static cy_en_syspm_status_t serial_pm_callback(cy_stc_syspm_callback_params_t *c
     return status;
 }
 #endif /* DEVICE_SLEEP && DEVICE_LPTICKER && SERIAL_PM_CALLBACK_ENABLED */
+
 
 void serial_init(serial_t *obj_in, PinName tx, PinName rx)
 {
@@ -551,7 +514,7 @@ void serial_init(serial_t *obj_in, PinName tx, PinName rx)
 
             if (is_stdio) {
                 memcpy(&stdio_uart, obj_in, sizeof(serial_t));
-                stdio_uart_inited = 1;
+                stdio_uart_inited = true;
             } else if (is_bt) {
                 memcpy(&bt_uart, obj_in, sizeof(serial_t));
                 bt_uart_inited = true;
@@ -736,27 +699,8 @@ void serial_set_flow_control(serial_t *obj_in, FlowControl type, PinName rxflow,
     serial_init_peripheral(obj);
 }
 
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
 
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-    return PinMap_UART_RTS;
-}
-
-
+#if DEVICE_SERIAL_ASYNCH
 
 void serial_irq_handler(serial_t *obj_in, uart_irq_handler handler, uint32_t id)
 {
@@ -792,7 +736,6 @@ void serial_irq_set(serial_t *obj_in, SerialIrq irq, uint32_t enable)
     }
 }
 
-#if DEVICE_SERIAL_ASYNCH
 
 int serial_tx_asynch(serial_t *obj_in, const void *tx, size_t tx_length, uint8_t tx_width, uint32_t handler, uint32_t event, DMAUsage hint)
 {

@@ -26,6 +26,7 @@
 #if DEVICE_SPI
 
 #include "mbed_assert.h"
+#include "mbed_power_mgmt.h"
 #include "PeripheralPins.h"
 #include "pinmap.h"
 #include "pinmap_function.h"
@@ -38,6 +39,7 @@
 #include "em_usart.h"
 #include "em_cmu.h"
 #include "em_dma.h"
+#include "sleep_api.h"
 
 static uint16_t fill_word = SPI_FILL_WORD;
 
@@ -1183,6 +1185,9 @@ void spi_master_transfer(spi_t *obj, const void *tx, size_t tx_length, void *rx,
     spi_enable_event(obj, SPI_EVENT_ALL, false);
     spi_enable_event(obj, event, true);
 
+    // Set the sleep mode
+    sleep_manager_lock_deep_sleep();
+
     /* And kick off the transfer */
     spi_master_transfer_dma(obj, tx, rx, tx_length, rx_length, (void*)handler, hint);
 }
@@ -1237,6 +1242,7 @@ uint32_t spi_irq_handler_asynch(spi_t* obj)
 
         /* Wait transmit to complete, before user code is indicated*/
         while(!(obj->spi.spi->STATUS & USART_STATUS_TXC));
+        sleep_manager_unlock_deep_sleep();
         /* return to CPP land to say we're finished */
         return SPI_EVENT_COMPLETE;
     } else {
@@ -1254,6 +1260,7 @@ uint32_t spi_irq_handler_asynch(spi_t* obj)
             /* disable interrupts */
             spi_enable_interrupt(obj, (uint32_t)NULL, false);
 
+            sleep_manager_unlock_deep_sleep();
             /* Return the event back to userland */
             return event;
         }
@@ -1361,6 +1368,7 @@ uint32_t spi_irq_handler_asynch(spi_t* obj)
 
         /* Wait for transmit to complete, before user code is indicated */
         while(!(obj->spi.spi->STATUS & USART_STATUS_TXC));
+        sleep_manager_unlock_deep_sleep();
 
         /* return to CPP land to say we're finished */
         return SPI_EVENT_COMPLETE;
@@ -1381,6 +1389,7 @@ uint32_t spi_irq_handler_asynch(spi_t* obj)
 
             /* Wait for transmit to complete, before user code is indicated */
             while(!(obj->spi.spi->STATUS & USART_STATUS_TXC));
+            sleep_manager_unlock_deep_sleep();
 
             /* Return the event back to userland */
             return event;
@@ -1420,46 +1429,9 @@ void spi_abort_asynch(spi_t *obj)
         // Interrupt implementation: switch off interrupts
         spi_enable_interrupt(obj, (uint32_t)NULL, false);
     }
-}
 
-const PinMap *spi_master_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_master_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_master_clk_pinmap()
-{
-    return PinMap_SPI_CLK;
-}
-
-const PinMap *spi_master_cs_pinmap()
-{
-    return PinMap_SPI_CS;
-}
-
-const PinMap *spi_slave_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_slave_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_slave_clk_pinmap()
-{
-    return PinMap_SPI_CLK;
-}
-
-const PinMap *spi_slave_cs_pinmap()
-{
-    return PinMap_SPI_CS;
+    // Release sleep mode block
+    sleep_manager_unlock_deep_sleep();
 }
 
 #endif

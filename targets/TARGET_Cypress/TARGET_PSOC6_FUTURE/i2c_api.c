@@ -23,10 +23,10 @@
 #include "i2c_api.h"
 #include "psoc6_utils.h"
 
-#include "cy_sysclk.h"
-#include "cy_gpio.h"
-#include "cy_scb_i2c.h"
-#include "cy_sysint.h"
+#include "drivers/peripheral/sysclk/cy_sysclk.h"
+#include "drivers/peripheral/gpio/cy_gpio.h"
+#include "drivers/peripheral/scb/cy_scb_i2c.h"
+#include "drivers/peripheral/sysint/cy_sysint.h"
 
 #define I2C_DEFAULT_SPEED               100000
 #define NUM_I2C_PORTS                   8
@@ -443,26 +443,6 @@ int i2c_byte_write(i2c_t *obj_in, int data)
             // Error has occurred.
             return (-1);
     }
-}
-
-const PinMap *i2c_master_sda_pinmap()
-{
-    return PinMap_I2C_SDA;
-}
-
-const PinMap *i2c_master_scl_pinmap()
-{
-    return PinMap_I2C_SCL;
-}
-
-const PinMap *i2c_slave_sda_pinmap()
-{
-    return PinMap_I2C_SDA;
-}
-
-const PinMap *i2c_slave_scl_pinmap()
-{
-    return PinMap_I2C_SCL;
 }
 
 #if DEVICE_I2C_ASYNCH

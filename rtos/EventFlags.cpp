@@ -38,7 +38,8 @@ EventFlags::EventFlags(const char *name)
 
 void EventFlags::constructor(const char *name)
 {
-    osEventFlagsAttr_t attr = { 0 };
+    memset(&_obj_mem, 0, sizeof(_obj_mem));
+    osEventFlagsAttr_t attr;
     attr.name = name ? name : "application_unnamed_event_flags";
     attr.cb_mem = &_obj_mem;
     attr.cb_size = sizeof(_obj_mem);

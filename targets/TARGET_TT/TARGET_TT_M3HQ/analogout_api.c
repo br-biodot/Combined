@@ -102,8 +102,3 @@ uint16_t analogout_read_u16(dac_t *obj)
 
     return value;
 }
-
-const PinMap *analogout_pinmap()
-{
-    return PinMap_DAC;
-}
