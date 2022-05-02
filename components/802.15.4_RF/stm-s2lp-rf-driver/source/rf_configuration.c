@@ -157,7 +157,7 @@ void rf_conf_calculate_rssi_threshold_registers(int16_t rssi_threshold, uint8_t 
  * Function calculates deviation from given parameters for 2FSK and 2GFSK modulations.
  * Calculated using formula Deviation=(modulation_index*datarate)/2
  */
-uint32_t rf_conf_calculate_deviation(phy_modulation_index_e modulation_index, uint32_t datarate)
+uint32_t rf_conf_calculate_deviation(phy_modulation_e modulation_index, uint32_t datarate)
 {
     uint32_t deviation = 0;
     if (modulation_index == MODULATION_INDEX_0_5) {
