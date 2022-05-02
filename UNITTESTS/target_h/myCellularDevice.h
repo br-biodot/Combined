@@ -27,7 +27,9 @@ using namespace events;
 
 namespace mbed {
 
+class CellularPower;
 class CellularSMS;
+class CellularSIM;
 class CellularInformation;
 class CellularContext;
 class FileHandle;
@@ -40,24 +42,7 @@ public:
         delete _context_list;
         delete _network;
     }
-
-    virtual nsapi_error_t set_pin(const char *sim_pin)
-    {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual nsapi_error_t get_sim_state(SimState &state)
-    {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual CellularContext *create_context(UARTSerial *serial, const char *const apn, PinName dcd_pin,
-                                            bool active_high, bool cp_req = false, bool nonip_req = false)
-    {
-        return NULL;
-    }
-
-    virtual CellularContext *create_context(FileHandle *fh = NULL, const char *apn = NULL, bool cp_req = false, bool nonip_req = false)
+    virtual CellularContext *create_context(FileHandle *fh = NULL, const char *apn = NULL)
     {
         EventQueue que;
         FileHandle_stub fh1;
@@ -84,6 +69,16 @@ public:
         return NULL;
     }
 
+    virtual CellularPower *open_power(FileHandle *fh = NULL)
+    {
+        return NULL;
+    }
+
+    virtual CellularSIM *open_sim(FileHandle *fh = NULL)
+    {
+        return NULL;
+    }
+
     virtual CellularInformation *open_information(FileHandle *fh = NULL)
     {
         return NULL;
@@ -96,6 +91,10 @@ public:
 
     virtual void close_sms() {}
 
+    virtual void close_power() {}
+
+    virtual void close_sim() {}
+
     virtual void close_information() {}
 
     virtual void set_timeout(int timeout) {}
@@ -107,48 +106,9 @@ public:
 
     virtual void modem_debug_on(bool on) {}
 
-    virtual nsapi_error_t init()
+    virtual nsapi_error_t init_module()
     {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual nsapi_error_t shutdown()
-    {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual nsapi_error_t is_ready()
-    {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual nsapi_error_t hard_power_on()
-    {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual nsapi_error_t hard_power_off()
-    {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual nsapi_error_t soft_power_on()
-    {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual nsapi_error_t soft_power_off()
-    {
-        return NSAPI_ERROR_OK;
-    }
-
-    virtual void set_ready_cb(Callback<void()> callback)
-    {
-    }
-
-    nsapi_error_t set_power_save_mode(int periodic_time, int active_time)
-    {
-        return NSAPI_ERROR_OK;
+        return 0;
     }
 
     virtual CellularContext *get_context_list() const
@@ -158,14 +118,6 @@ public:
     void cellular_callback(nsapi_event_t ev, intptr_t ptr)
     {
         CellularDevice::cellular_callback(ev, ptr);
-    }
-    virtual ATHandler *get_at_handler()
-    {
-        return NULL;
-    }
-    virtual nsapi_error_t release_at_handler(ATHandler *at_handler)
-    {
-        return NSAPI_ERROR_OK;
     }
     AT_CellularNetwork *_network;
     AT_CellularContext *_context_list;

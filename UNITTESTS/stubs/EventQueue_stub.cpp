@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "events/EventQueue.h"
+#include "EventQueue.h"
 #include "Callback.h"
 #include "EventQueue_stub.h"
 

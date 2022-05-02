@@ -43,8 +43,6 @@
 #include "base64b.h"
 #include "pithy.h"
 #include <stdio.h>
-#include "mbedtls/config.h"
-#include "mbedtls/platform.h"
 
 #if !DEVICE_TRNG
 #error [NOT_SUPPORTED] TRNG API not supported for this target
@@ -270,17 +268,11 @@ Specification specification(greentea_test_setup, cases, greentea_test_teardown_h
 
 int main()
 {
-    int ret = 0;
-#if defined(MBEDTLS_PLATFORM_C)
-    ret = mbedtls_platform_setup(NULL);
-#endif /* MBEDTLS_PLATFORM_C */
 #if (defined(TARGET_PSA) && defined(COMPONENT_PSA_SRV_IPC) && defined(MBEDTLS_PSA_CRYPTO_C))
     inject_entropy_for_psa();
 #endif
-    ret = !Harness::run(specification);
-#if defined(MBEDTLS_PLATFORM_C)
-    mbedtls_platform_teardown(NULL);
-#endif /* MBEDTLS_PLATFORM_C */
+    bool ret = !Harness::run(specification);
+
     return ret;
 }
 

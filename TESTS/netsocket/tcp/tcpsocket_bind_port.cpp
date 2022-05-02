@@ -26,7 +26,13 @@ using namespace utest::v1;
 
 void TCPSOCKET_BIND_PORT()
 {
-    SKIP_IF_TCP_UNSUPPORTED();
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
+    int count = fetch_stats();
+    for (int j = 0; j < count; j++) {
+        TEST_ASSERT_EQUAL(SOCK_CLOSED,  tcp_stats[j].state);
+    }
+#endif
+
     TCPSocket *sock = new TCPSocket;
     if (!sock) {
         TEST_FAIL();
@@ -41,4 +47,11 @@ void TCPSOCKET_BIND_PORT()
     }
 
     delete sock;
+
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
+    count = fetch_stats();
+    for (int j = 0; j < count; j++) {
+        TEST_ASSERT_EQUAL(SOCK_CLOSED, tcp_stats[j].state);
+    }
+#endif
 }

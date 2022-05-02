@@ -58,7 +58,6 @@ protected:
         stack.return_socketAddress = SocketAddress();
         eventFlagsStubNextRetval.clear();
         delete wrapper;
-        delete transport;
     }
 
     char *cert = "-----BEGIN CERTIFICATE-----\
@@ -104,7 +103,6 @@ TEST_F(TestDTLSSocketWrapper, constructor)
 TEST_F(TestDTLSSocketWrapper, constructor_hostname)
 {
     DTLSSocketWrapper *wrapper2 = new DTLSSocketWrapper(transport, "localhost");
-    delete wrapper2;
 }
 
 /* connect */
@@ -165,7 +163,7 @@ TEST_F(TestDTLSSocketWrapper, connect_fail_ctr_drbg_seed)
     stack.return_value = NSAPI_ERROR_OK;
     const SocketAddress a("127.0.0.1", 1024);
     stack.return_socketAddress = a;
-    EXPECT_EQ(wrapper->connect(a), NSAPI_ERROR_AUTH_FAILURE);
+    EXPECT_EQ(wrapper->connect(a), NSAPI_ERROR_PARAMETER);
     mbedtls_stub.crt_expected_int = 0;
 }
 
@@ -177,7 +175,7 @@ TEST_F(TestDTLSSocketWrapper, connect_fail_ssl_setup)
     stack.return_value = NSAPI_ERROR_OK;
     const SocketAddress a("127.0.0.1", 1024);
     stack.return_socketAddress = a;
-    EXPECT_EQ(wrapper->connect(a), NSAPI_ERROR_AUTH_FAILURE);
+    EXPECT_EQ(wrapper->connect(a), NSAPI_ERROR_PARAMETER);
 }
 
 /* send */
@@ -325,8 +323,6 @@ TEST_F(TestDTLSSocketWrapper, set_root_ca_cert_invalid)
     mbedtls_stub.counter = 0;
     mbedtls_stub.retArray[0] = 1; // mbedtls_x509_crt_parse error
     EXPECT_EQ(wrapper->set_root_ca_cert(cert, strlen(cert)), NSAPI_ERROR_PARAMETER);
-    // We need to deallocate the crt pointer ourselves.
-    delete (wrapper->get_ca_chain());
 }
 
 TEST_F(TestDTLSSocketWrapper, set_client_cert_key)

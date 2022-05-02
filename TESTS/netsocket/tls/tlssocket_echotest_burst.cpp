@@ -30,7 +30,7 @@ namespace {
 static const int SIGNAL_SIGIO = 0x1;
 static const int SIGIO_TIMEOUT = 20000; //[ms]
 
-static const int BURST_CNT = 20;
+static const int BURST_CNT = 100;
 static const int BURST_SIZE = 1220;
 }
 
@@ -41,7 +41,6 @@ static void _sigio_handler(osThreadId id)
 
 void TLSSOCKET_ECHOTEST_BURST()
 {
-    SKIP_IF_TCP_UNSUPPORTED();
     TLSSocket *sock = new TLSSocket;
     tlssocket_connect_to_echo_srv(*sock);
     sock->sigio(callback(_sigio_handler, ThisThread::get_id()));
@@ -50,40 +49,50 @@ void TLSSOCKET_ECHOTEST_BURST()
     fill_tx_buffer_ascii(tls_global::tx_buffer, BURST_SIZE);
 
     int recvd;
+    int bt_left;
     int sent;
     for (int i = 0; i < BURST_CNT; i++) {
-        sent = sock->send(tls_global::tx_buffer, BURST_SIZE);
-        if (sent < 0) {
-            printf("[%02d] network error %d\n", i, sent);
-            TEST_FAIL();
-            break;
-        } else if (sent != BURST_SIZE) {
-            printf("[%02d] sock.send return size %d does not match the expectation %d\n", i, sent, BURST_SIZE);
-            TEST_FAIL();
-            break;
+        bt_left = BURST_SIZE;
+        while (bt_left > 0) {
+            sent = sock->send(&(tls_global::tx_buffer[BURST_SIZE - bt_left]), bt_left);
+            if (sent == NSAPI_ERROR_WOULD_BLOCK) {
+                if (osSignalWait(SIGNAL_SIGIO, SIGIO_TIMEOUT).status == osEventTimeout) {
+                    TEST_FAIL();
+                    goto END;
+                }
+                continue;
+            } else if (sent < 0) {
+                printf("[%02d] network error %d\n", i, sent);
+                TEST_FAIL();
+                goto END;
+            }
+            bt_left -= sent;
         }
 
-        int bytes2recv = sent;
-        while (bytes2recv) {
-            recvd = sock->recv(&(tls_global::rx_buffer[sent - bytes2recv]), bytes2recv);
+        bt_left = BURST_SIZE;
+        while (bt_left > 0) {
+            recvd = sock->recv(&(tls_global::rx_buffer[BURST_SIZE - bt_left]), BURST_SIZE);
             if (recvd < 0) {
-                printf("[Round#%02d] network error %d\n", i, recvd);
-                TEST_FAIL();
-                TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, sock->close());
-                return;
+                printf("[%02d] network error %d\n", i, recvd);
+                break;
             }
-            bytes2recv -= recvd;
+            bt_left -= recvd;
+        }
+
+        if (bt_left != 0) {
+            TEST_FAIL_MESSAGE("bt_left != 0");
+            goto END;
         }
 
         TEST_ASSERT_EQUAL(0, memcmp(tls_global::tx_buffer, tls_global::rx_buffer, BURST_SIZE));
     }
+END:
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, sock->close());
     delete sock;
 }
 
 void TLSSOCKET_ECHOTEST_BURST_NONBLOCK()
 {
-    SKIP_IF_TCP_UNSUPPORTED();
     TLSSocket *sock = new TLSSocket;
     tlssocket_connect_to_echo_srv(*sock);
     sock->set_blocking(false);

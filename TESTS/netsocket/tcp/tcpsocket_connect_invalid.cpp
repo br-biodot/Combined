@@ -26,7 +26,6 @@ using namespace utest::v1;
 
 void TCPSOCKET_CONNECT_INVALID()
 {
-    SKIP_IF_TCP_UNSUPPORTED();
     TCPSocket sock;
     TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, sock.open(NetworkInterface::get_default_instance()));
 

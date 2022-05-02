@@ -47,13 +47,3 @@ nsapi_error_t AT_CellularInformation::get_serial_number(char *buf, size_t buf_si
 {
     return NSAPI_ERROR_OK;
 }
-
-nsapi_error_t AT_CellularInformation::get_imsi(char *imsi, size_t buf_size)
-{
-    return NSAPI_ERROR_OK;
-}
-
-nsapi_error_t AT_CellularInformation::get_iccid(char *buf, size_t buf_size)
-{
-    return NSAPI_ERROR_OK;
-}

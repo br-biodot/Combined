@@ -80,9 +80,7 @@ public:
 
     virtual void sigio(Callback<void()> func)
     {
-        if (func) {
-            func();
-        }
+        func();
     }
 
     short short_value;

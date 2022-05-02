@@ -15,31 +15,13 @@
  * limitations under the License.
  */
 
-#include "Thread_stub.h"
+#include "Thread.h"
 
-using namespace rtos;
-
-osStatus Thread_stub::osStatus_value = osOK;
+namespace rtos {
 
 osStatus Thread::wait_until(uint64_t millisec)
 {
     return 0;
 }
 
-osStatus Thread::terminate()
-{
-    return 0;
-}
-
-osStatus Thread::start(mbed::Callback<void()> task)
-{
-    return Thread_stub::osStatus_value;
-}
-
-void Thread::constructor(osPriority priority, uint32_t stack_size, unsigned char *stack_mem, const char *name)
-{
-}
-
-Thread::~Thread()
-{
 }

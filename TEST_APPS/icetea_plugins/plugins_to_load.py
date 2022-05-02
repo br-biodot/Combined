@@ -13,10 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from ip_test_parsers import IpTestParsers
-from nfc_test_parsers import NfcTestParsers
-
 
 plugins_to_load = {
-    "ip_test_parsers": IpTestParsers,
-    "nfc_test_parsers": NfcTestParsers
+    "ip_test_parsers": IpTestParsers
 }

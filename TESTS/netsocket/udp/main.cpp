@@ -37,7 +37,7 @@ namespace {
 Timer tc_bucket; // Timer to limit a test cases run time
 }
 
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
 mbed_stats_socket_t udp_stats[MBED_CONF_NSAPI_SOCKET_STATS_MAX_COUNT];
 #endif
 
@@ -77,24 +77,6 @@ nsapi_version_t get_ip_version()
     return test.get_ip_version();
 }
 
-bool check_oversized_packets(nsapi_error_t error, int &size)
-{
-    if (error == NSAPI_ERROR_PARAMETER) {
-        if (get_ip_version() == NSAPI_IPv4) {
-            if (size > udp_global::MAX_SEND_SIZE_IPV4) {
-                size = udp_global::MAX_SEND_SIZE_IPV4;
-                return true;
-            }
-        } else if (get_ip_version() == NSAPI_IPv6) {
-            if (size > udp_global::MAX_SEND_SIZE_IPV6) {
-                size = udp_global::MAX_SEND_SIZE_IPV6;
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 void fill_tx_buffer_ascii(char *buff, size_t len)
 {
     for (size_t i = 0; i < len; ++i) {
@@ -107,7 +89,7 @@ int split2half_rmng_udp_test_time()
     return (udp_global::TESTS_TIMEOUT - tc_bucket.read()) / 2;
 }
 
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
 int fetch_stats()
 {
     return SocketStats::mbed_stats_socket_get_each(&udp_stats[0], MBED_CONF_NSAPI_SOCKET_STATS_MAX_COUNT);
@@ -128,38 +110,6 @@ void greentea_teardown(const size_t passed, const size_t failed, const failure_t
     tc_bucket.stop();
     _ifdown();
     return greentea_test_teardown_handler(passed, failed, failure);
-}
-
-utest::v1::status_t greentea_case_setup_handler_udp(const Case *const source, const size_t index_of_case)
-{
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
-    int count = fetch_stats();
-    for (int j = 0; j < count; j++) {
-        TEST_ASSERT_EQUAL(SOCK_CLOSED,  udp_stats[j].state);
-    }
-#endif
-    return greentea_case_setup_handler(source, index_of_case);
-}
-
-utest::v1::status_t greentea_case_teardown_handler_udp(const Case *const source, const size_t passed, const size_t failed, const failure_t failure)
-{
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
-    int count = fetch_stats();
-    for (int j = 0; j < count; j++) {
-        TEST_ASSERT_EQUAL(SOCK_CLOSED,  udp_stats[j].state);
-    }
-#endif
-    return greentea_case_teardown_handler(source, passed, failed, failure);
-}
-
-static void test_failure_handler(const failure_t failure)
-{
-    UTEST_LOG_FUNCTION();
-    if (failure.location == LOCATION_TEST_SETUP || failure.location == LOCATION_TEST_TEARDOWN) {
-        verbose_test_failure_handler(failure);
-        GREENTEA_TESTSUITE_RESULT(false);
-        while (1) ;
-    }
 }
 
 Case cases[] = {
@@ -185,16 +135,7 @@ Case cases[] = {
     Case("UDPSOCKET_ECHOTEST_BURST", UDPSOCKET_ECHOTEST_BURST),
 };
 
-handlers_t udp_test_case_handlers = {
-    default_greentea_test_setup_handler,
-    greentea_test_teardown_handler,
-    test_failure_handler,
-    greentea_case_setup_handler_udp,
-    greentea_case_teardown_handler_udp,
-    greentea_case_failure_continue_handler
-};
-
-Specification specification(greentea_setup, cases, greentea_teardown, udp_test_case_handlers);
+Specification specification(greentea_setup, cases, greentea_teardown, greentea_continue_handlers);
 
 int main()
 {

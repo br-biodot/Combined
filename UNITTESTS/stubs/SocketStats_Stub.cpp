@@ -16,7 +16,7 @@
 
 #include "SocketStats.h"
 
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
 int SocketStats::get_entry_position(const Socket *const reference_id)
 {
     return 0;

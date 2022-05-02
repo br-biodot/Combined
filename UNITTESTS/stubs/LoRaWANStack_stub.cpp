@@ -39,6 +39,7 @@ LoRaWANStack::LoRaWANStack()
       _app_port(12),
       _link_check_requested(false),
       _automatic_uplink_ongoing(false),
+      _ready_for_rx(true),
       _queue(NULL)
 {
 }

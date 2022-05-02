@@ -37,7 +37,7 @@ namespace {
 Timer tc_bucket; // Timer to limit a test cases run time
 }
 
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
 mbed_stats_socket_t tcp_stats[MBED_CONF_NSAPI_SOCKET_STATS_MAX_COUNT];
 #endif
 
@@ -114,17 +114,6 @@ nsapi_error_t tcpsocket_connect_to_discard_srv(TCPSocket &sock)
     return tcpsocket_connect_to_srv(sock, MBED_CONF_APP_ECHO_SERVER_DISCARD_PORT);
 }
 
-bool is_tcp_supported()
-{
-    static bool supported;
-    static bool tested = false;
-    if (!tested) {
-        TCPSocket socket;
-        supported = socket.open(NetworkInterface::get_default_instance()) == NSAPI_ERROR_OK;
-    }
-    return supported;
-}
-
 void fill_tx_buffer_ascii(char *buff, size_t len)
 {
     for (size_t i = 0; i < len; ++i) {
@@ -137,7 +126,7 @@ int split2half_rmng_tcp_test_time()
     return (tcp_global::TESTS_TIMEOUT - tc_bucket.read()) / 2;
 }
 
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
 int fetch_stats()
 {
     return SocketStats::mbed_stats_socket_get_each(&tcp_stats[0], MBED_CONF_NSAPI_SOCKET_STATS_MAX_COUNT);
@@ -158,38 +147,6 @@ void greentea_teardown(const size_t passed, const size_t failed, const failure_t
     tc_bucket.stop();
     _ifdown();
     return greentea_test_teardown_handler(passed, failed, failure);
-}
-
-utest::v1::status_t greentea_case_setup_handler_tcp(const Case *const source, const size_t index_of_case)
-{
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
-    int count = fetch_stats();
-    for (int j = 0; j < count; j++) {
-        TEST_ASSERT_EQUAL(SOCK_CLOSED,  tcp_stats[j].state);
-    }
-#endif
-    return greentea_case_setup_handler(source, index_of_case);
-}
-
-utest::v1::status_t greentea_case_teardown_handler_tcp(const Case *const source, const size_t passed, const size_t failed, const failure_t failure)
-{
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
-    int count = fetch_stats();
-    for (int j = 0; j < count; j++) {
-        TEST_ASSERT_EQUAL(SOCK_CLOSED,  tcp_stats[j].state);
-    }
-#endif
-    return greentea_case_teardown_handler(source, passed, failed, failure);
-}
-
-static void test_failure_handler(const failure_t failure)
-{
-    UTEST_LOG_FUNCTION();
-    if (failure.location == LOCATION_TEST_SETUP || failure.location == LOCATION_TEST_TEARDOWN) {
-        verbose_test_failure_handler(failure);
-        GREENTEA_TESTSUITE_RESULT(false);
-        while (1) ;
-    }
 }
 
 
@@ -221,16 +178,7 @@ Case cases[] = {
     Case("TCPSOCKET_ENDPOINT_CLOSE", TCPSOCKET_ENDPOINT_CLOSE),
 };
 
-handlers_t tcp_test_case_handlers = {
-    default_greentea_test_setup_handler,
-    greentea_test_teardown_handler,
-    test_failure_handler,
-    greentea_case_setup_handler_tcp,
-    greentea_case_teardown_handler_tcp,
-    greentea_case_failure_continue_handler
-};
-
-Specification specification(greentea_setup, cases, greentea_teardown, tcp_test_case_handlers);
+Specification specification(greentea_setup, cases, greentea_teardown, greentea_continue_handlers);
 
 int main()
 {

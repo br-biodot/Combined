@@ -18,7 +18,7 @@
 #include "AT_CellularStack.h"
 #include <string.h>
 #include "AT_CellularNetwork.h"
-#include "events/EventQueue.h"
+#include "EventQueue.h"
 #include "ATHandler.h"
 #include "AT_CellularStack.h"
 #include "FileHandle_stub.h"

@@ -30,7 +30,7 @@ public:
     ~TestFile() {}
 
     enum FunctionName {
-        fnNone, fnRead, fnWrite, fnSeek, fnClose, fnIsatty, fnTruncate
+        fnNone, fnRead, fnWrite, fnSeek, fnClose, fnIsatty
     };
 
     virtual ssize_t read(void *buffer, size_t size)
@@ -104,24 +104,6 @@ public:
     virtual int close()
     {
         _fnCalled = fnClose;
-        return 0;
-    }
-
-    virtual off_t size()
-    {
-        return _end;
-    }
-
-    virtual int truncate(off_t length)
-    {
-        _fnCalled = fnTruncate;
-        if (!NEW_POS_IS_VALID(length)) {
-            return -EINVAL;
-        }
-        while (_end < length) {
-            _data[_end++] = 0;
-        }
-        _end = length;
         return 0;
     }
 

@@ -26,6 +26,13 @@ using namespace utest::v1;
 
 void UDPSOCKET_BIND_ADDRESS()
 {
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
+    int count = fetch_stats();
+    for (int j = 0; j < count; j++) {
+        TEST_ASSERT_EQUAL(SOCK_CLOSED,  udp_stats[j].state);
+    }
+#endif
+
     UDPSocket *sock = new UDPSocket;
     if (!sock) {
         TEST_FAIL();
@@ -40,4 +47,11 @@ void UDPSOCKET_BIND_ADDRESS()
     }
 
     delete sock;
+
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
+    count = fetch_stats();
+    for (int j = 0; j < count; j++) {
+        TEST_ASSERT_EQUAL(SOCK_CLOSED, udp_stats[j].state);
+    }
+#endif
 }

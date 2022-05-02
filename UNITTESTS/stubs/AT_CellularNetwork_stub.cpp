@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-#include "AT_CellularNetwork_stub.h"
+#include "AT_CellularNetwork.h"
 #include "CellularNetwork.h"
 #include "CellularUtil.h"
 #include "CellularLog.h"
@@ -24,13 +24,6 @@
 
 using namespace mbed;
 using namespace mbed_cellular_util;
-
-
-
-nsapi_error_t AT_CellularNetwork_stub::nsapi_error_value = 0;
-int AT_CellularNetwork_stub::fail_counter = 0;
-int AT_CellularNetwork_stub::set_registration_urc_fail_counter = 0;
-int AT_CellularNetwork_stub::get_registration_params_fail_counter = 0;
 
 AT_CellularNetwork::AT_CellularNetwork(ATHandler &atHandler) : AT_CellularBase(atHandler)
 {
@@ -44,12 +37,13 @@ void AT_CellularNetwork::attach(Callback<void(nsapi_event_t, intptr_t)> status_c
 {
 }
 
+nsapi_connection_status_t AT_CellularNetwork::get_connection_status() const
+{
+    return NSAPI_STATUS_LOCAL_UP;
+}
+
 nsapi_error_t AT_CellularNetwork::set_registration_urc(RegistrationType type, bool urc_on)
 {
-    if (AT_CellularNetwork_stub::set_registration_urc_fail_counter) {
-        AT_CellularNetwork_stub::set_registration_urc_fail_counter--;
-        return NSAPI_ERROR_DEVICE_ERROR;
-    }
     return NSAPI_ERROR_OK;
 }
 
@@ -66,18 +60,17 @@ nsapi_error_t AT_CellularNetwork::set_registration(const char *plmn)
 
 nsapi_error_t AT_CellularNetwork::get_registration_params(RegistrationType type, registration_params_t &reg_params)
 {
-    if (AT_CellularNetwork_stub::get_registration_params_fail_counter) {
-        AT_CellularNetwork_stub::get_registration_params_fail_counter--;
-        return NSAPI_ERROR_DEVICE_ERROR;
-    }
-
-    reg_params._status = CellularNetwork::RegisteredHomeNetwork;
     return NSAPI_ERROR_OK;
 }
 
 nsapi_error_t AT_CellularNetwork::get_registration_params(registration_params_t &reg_params)
 {
     return NSAPI_ERROR_OK;
+}
+
+AT_CellularNetwork::RegistrationMode AT_CellularNetwork::has_registration(RegistrationType reg_type)
+{
+    return RegistrationModeDisable;
 }
 
 nsapi_error_t AT_CellularNetwork::set_attach()
@@ -115,25 +108,24 @@ nsapi_error_t AT_CellularNetwork::scan_plmn(operList_t &operators, int &opsCount
     return NSAPI_ERROR_OK;
 }
 
-nsapi_error_t AT_CellularNetwork::set_ciot_optimization_config(CIoT_Supported_Opt supported_opt,
-                                                               CIoT_Preferred_UE_Opt preferred_opt,
-                                                               Callback<void(CIoT_Supported_Opt)> network_support_cb)
+nsapi_error_t AT_CellularNetwork::set_ciot_optimization_config(Supported_UE_Opt supported_opt,
+                                                               Preferred_UE_Opt preferred_opt)
 {
     return NSAPI_ERROR_OK;
 }
 
-nsapi_error_t AT_CellularNetwork::get_ciot_ue_optimization_config(CIoT_Supported_Opt &supported_opt,
-                                                                  CIoT_Preferred_UE_Opt &preferred_opt)
+nsapi_error_t AT_CellularNetwork::get_ciot_optimization_config(Supported_UE_Opt &supported_opt,
+                                                               Preferred_UE_Opt &preferred_opt)
 {
     return NSAPI_ERROR_OK;
 }
 
-nsapi_error_t AT_CellularNetwork::get_ciot_network_optimization_config(CIoT_Supported_Opt &supported_opt)
+nsapi_error_t AT_CellularNetwork::get_extended_signal_quality(int &rxlev, int &ber, int &rscp, int &ecno, int &rsrq, int &rsrp)
 {
     return NSAPI_ERROR_OK;
 }
 
-nsapi_error_t AT_CellularNetwork::get_signal_quality(int &rssi, int *ber)
+nsapi_error_t AT_CellularNetwork::get_signal_quality(int &rssi, int &ber)
 {
     return NSAPI_ERROR_OK;
 }
@@ -153,21 +145,7 @@ nsapi_error_t AT_CellularNetwork::get_operator_names(operator_names_list &op_nam
     return NSAPI_ERROR_OK;
 }
 
-bool AT_CellularNetwork::is_active_context(int *number_of_active_contexts, int cid)
+bool AT_CellularNetwork::is_active_context()
 {
-    return false;
-}
-
-nsapi_error_t AT_CellularNetwork::set_receive_period(int mode, EDRXAccessTechnology act_type, uint8_t edrx_value)
-{
-    return NSAPI_ERROR_OK;
-}
-
-void AT_CellularNetwork::get_context_state_command()
-{
-}
-
-nsapi_error_t AT_CellularNetwork::set_packet_domain_event_reporting(bool on)
-{
-    return NSAPI_ERROR_OK;
+    return true;
 }

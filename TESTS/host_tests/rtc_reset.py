@@ -40,7 +40,7 @@ class RtcResetTest(BaseHostTest):
         """Register callbacks required for the test"""
         self._error = False
         generator = self.rtc_reset_test()
-        next(generator)
+        generator.next()
 
         def run_gen(key, value, time):
             """Run the generator, and fail testing if the iterator stops"""

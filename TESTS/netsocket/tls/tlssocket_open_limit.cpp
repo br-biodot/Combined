@@ -35,7 +35,6 @@ typedef struct TLSSocketItem {
 
 void TLSSOCKET_OPEN_LIMIT()
 {
-    SKIP_IF_TCP_UNSUPPORTED();
     int open_sockets[2] = {0};
 
     for (int i = 0; i < 2; i++) {
@@ -73,11 +72,11 @@ void TLSSOCKET_OPEN_LIMIT()
             break;
         }
 
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
         int count = fetch_stats();
         int open_count = 0;
         for (int j = 0; j < count; j++) {
-            if ((tls_stats[j].state == SOCK_OPEN) && (tls_stats[j].proto == NSAPI_TCP)) {
+            if ((tls_stats[j].state == SOCK_OPEN) && (tls_stats[j].proto == NSAPI_TLS)) {
                 open_count++;
             }
         }
