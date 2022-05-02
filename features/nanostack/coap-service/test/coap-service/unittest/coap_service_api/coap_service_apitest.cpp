@@ -120,9 +120,3 @@ TEST(coap_service_api, test_coap_service_handshake_limit_set)
 {
     CHECK(test_coap_service_handshake_limit_set())
 }
-
-TEST(coap_service_api, test_coap_service_msg_prevalidate_cb_read_and_set)
-{
-    CHECK(test_coap_service_msg_prevalidate_cb_read_and_set())
-}
-

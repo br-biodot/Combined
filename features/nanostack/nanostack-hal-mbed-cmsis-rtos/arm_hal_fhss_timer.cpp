@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #include "ns_types.h"
 #include "fhss_api.h"
 #include "fhss_config.h"
@@ -23,7 +22,7 @@
 #include "platform/arm_hal_interrupt.h"
 #include <Timer.h>
 #include "equeue.h"
-#include "events/EventQueue.h"
+#include "EventQueue.h"
 #include "mbed_shared_queues.h"
 #include "Timeout.h"
 
@@ -71,7 +70,7 @@ static fhss_timeout_s *allocate_timeout(void)
 {
     for (int i = 0; i < NUMBER_OF_SIMULTANEOUS_TIMEOUTS; i++) {
         if (fhss_timeout[i].fhss_timer_callback == NULL) {
-            memset(&fhss_timeout[i], 0, sizeof(fhss_timeout_s));
+            memset(&fhss_timeout[i], sizeof(fhss_timeout_s), 0);
             return &fhss_timeout[i];
         }
     }
@@ -171,4 +170,3 @@ fhss_timer_t fhss_functions = {
     .fhss_get_timestamp = platform_fhss_timestamp_read,
     .fhss_resolution_divider = 1
 };
-

@@ -30,7 +30,7 @@ public:
     virtual nsapi_error_t bringdown();
 
 private:
-    friend class Nanostack;
+    friend Nanostack;
     friend class NanostackEthernetInterface;
     EthernetInterface(NanostackEthernetPhy &phy) : Interface(phy) {}
     nsapi_error_t initialize();

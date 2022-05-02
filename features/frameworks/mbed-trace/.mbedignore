@@ -2,4 +2,3 @@ build/*
 yotta_modules/*
 yotta_targets/*
 test/*
-example/*

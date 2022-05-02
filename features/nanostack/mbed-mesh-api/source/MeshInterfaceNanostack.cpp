@@ -119,14 +119,9 @@ nsapi_error_t MeshInterfaceNanostack::initialize(NanostackRfPhy *phy)
 
 void Nanostack::Interface::network_handler(mesh_connection_status_t status)
 {
-    if (_blocking) {
-        if (_connect_status == NSAPI_STATUS_CONNECTING
-                && (status == MESH_CONNECTED || status == MESH_CONNECTED_LOCAL
-                    || status == MESH_CONNECTED_GLOBAL)) {
-            connect_semaphore.release();
-        } else if (status == MESH_DISCONNECTED) {
-            disconnect_semaphore.release();
-        }
+    if ((status == MESH_CONNECTED || status == MESH_CONNECTED_LOCAL ||
+            status == MESH_CONNECTED_GLOBAL) && _blocking) {
+        connect_semaphore.release();
     }
 
 
@@ -150,9 +145,8 @@ void Nanostack::Interface::network_handler(mesh_connection_status_t status)
         _connect_status = NSAPI_STATUS_DISCONNECTED;
     }
 
-    if (_connection_status_cb && _previous_connection_status != _connect_status
-            && (_previous_connection_status != NSAPI_STATUS_GLOBAL_UP || status != MESH_BOOTSTRAP_STARTED)
-            && (_previous_connection_status != NSAPI_STATUS_CONNECTING || status != MESH_BOOTSTRAP_START_FAILED)) {
+    if (_connection_status_cb && _previous_connection_status != _connect_status) {
+
         _connection_status_cb(NSAPI_EVENT_CONNECTION_STATUS_CHANGE, _connect_status);
     }
     _previous_connection_status = _connect_status;

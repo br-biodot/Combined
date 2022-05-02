@@ -811,6 +811,7 @@ int NVStore::init()
     uint32_t free_space_offset_of_area[NVSTORE_NUM_AREAS];
     uint32_t init_attempts_val;
     uint32_t next_offset;
+    int os_ret;
     int ret = NVSTORE_SUCCESS;
     int valid;
     uint16_t key;
@@ -868,8 +869,8 @@ int NVStore::init()
 
         // Find start of empty space at the end of the area. This serves for both
         // knowing whether the area is empty and for the record traversal at the end.
-        ret = calc_empty_space(area, free_space_offset_of_area[area]);
-        MBED_ASSERT(!ret);
+        os_ret = calc_empty_space(area, free_space_offset_of_area[area]);
+        MBED_ASSERT(!os_ret);
 
         if (!free_space_offset_of_area[area]) {
             area_state[area] = NVSTORE_AREA_STATE_EMPTY;
@@ -890,8 +891,8 @@ int NVStore::init()
 
         // We have a non valid master record, in a non-empty area. Just erase the area.
         if ((!valid) || (key != master_record_key)) {
-            ret = flash_erase_area(area);
-            MBED_ASSERT(!ret);
+            os_ret = flash_erase_area(area);
+            MBED_ASSERT(!os_ret);
             area_state[area] = NVSTORE_AREA_STATE_EMPTY;
             continue;
         }
@@ -938,8 +939,8 @@ int NVStore::init()
             _active_area = 1;
         }
         _active_area_version = versions[_active_area];
-        ret = flash_erase_area(1 - _active_area);
-        MBED_ASSERT(!ret);
+        os_ret = flash_erase_area(1 - _active_area);
+        MBED_ASSERT(!os_ret);
     }
 
     // Traverse area until reaching the empty space at the end or until reaching a faulty record

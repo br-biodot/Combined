@@ -78,8 +78,7 @@ public:
      */
     AdvertisingDataSimpleBuilder &setAppearance(adv_data_appearance_t appearance)
     {
-        ble_error_t res = _builder.setAppearance(appearance);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setAppearance(appearance) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -97,8 +96,7 @@ public:
         adv_data_flags_t flags = adv_data_flags_t::default_flags
     )
     {
-        ble_error_t res = _builder.setFlags(flags);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setFlags(flags) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -113,8 +111,7 @@ public:
      */
     AdvertisingDataSimpleBuilder &setTxPowerAdvertised(advertising_power_t txPower)
     {
-        ble_error_t res = _builder.setTxPowerAdvertised(txPower);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setTxPowerAdvertised(txPower) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -132,8 +129,7 @@ public:
      */
     AdvertisingDataSimpleBuilder &setName(const char *name, bool complete = true)
     {
-        ble_error_t res = _builder.setName(name, complete);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setName(name, complete) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -148,8 +144,7 @@ public:
      */
     AdvertisingDataSimpleBuilder &setManufacturerSpecificData(mbed::Span<const uint8_t> data)
     {
-        ble_error_t res = _builder.setManufacturerSpecificData(data);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setManufacturerSpecificData(data) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -162,8 +157,7 @@ public:
      */
     AdvertisingDataSimpleBuilder &setAdvertisingInterval(adv_interval_t interval)
     {
-        ble_error_t res = _builder.setAdvertisingInterval(interval);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setAdvertisingInterval(interval) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -180,8 +174,7 @@ public:
         conn_interval_t max
     )
     {
-        ble_error_t res = _builder.setConnectionIntervalPreference(min, max);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setConnectionIntervalPreference(min, max) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -197,8 +190,7 @@ public:
      */
     AdvertisingDataSimpleBuilder &setServiceData(UUID service, mbed::Span<const uint8_t> data)
     {
-        ble_error_t res = _builder.setServiceData(service, data);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setServiceData(service, data) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -218,10 +210,11 @@ public:
         bool complete = true
     )
     {
-        ble_error_t res = _builder.setLocalServiceList(
+        MBED_ASSERT(
+            _builder.setLocalServiceList(
                 mbed::make_Span(&data, 1), complete
-            );
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+            ) == BLE_ERROR_NONE
+        );
         return *this;
     }
 
@@ -242,8 +235,7 @@ public:
         bool complete = true
     )
     {
-        ble_error_t res = _builder.setLocalServiceList(data, complete);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setLocalServiceList(data, complete) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -258,8 +250,9 @@ public:
      */
     AdvertisingDataSimpleBuilder &setRequestedService(const UUID& data)
     {
-        ble_error_t res = _builder.setRequestedServiceList(mbed::make_Span(&data, 1));
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(
+            _builder.setRequestedServiceList(mbed::make_Span(&data, 1)) == BLE_ERROR_NONE
+        );
         return *this;
     }
 
@@ -274,8 +267,7 @@ public:
      */
     AdvertisingDataSimpleBuilder &setRequestedServiceList(mbed::Span<const UUID> data)
     {
-        ble_error_t res = _builder.setRequestedServiceList(data);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.setRequestedServiceList(data) == BLE_ERROR_NONE);
         return *this;
     }
 
@@ -294,8 +286,7 @@ public:
         mbed::Span<const uint8_t> fieldData
     )
     {
-        ble_error_t res = _builder.addData(advDataType, fieldData);
-        MBED_ASSERT(res == BLE_ERROR_NONE);
+        MBED_ASSERT(_builder.addData(advDataType, fieldData) == BLE_ERROR_NONE);
         return *this;
     }
 

@@ -17,7 +17,7 @@
 #ifndef _CELLULAR_STATEMACHINE_H_
 #define _CELLULAR_STATEMACHINE_H_
 
-#include "events/EventQueue.h"
+#include "EventQueue.h"
 #include "CellularNetwork.h"
 #include "CellularCommon.h"
 #include "PlatformMutex.h"
@@ -28,6 +28,8 @@ class Thread;
 
 namespace mbed {
 
+class CellularPower;
+class CellularSIM;
 class CellularDevice;
 
 const int RETRY_ARRAY_SIZE = 10;
@@ -41,14 +43,12 @@ private:
     // friend of CellularDevice so that it's the only way to close/delete this class.
     friend class CellularDevice;
     friend class AT_CellularDevice;
-    friend class UT_CellularStateMachine; // for unit tests
     /** Constructor
      *
      * @param device    reference to CellularDevice
      * @param queue     reference to queue used in state transitions
-     * @param nw        reference to CellularNetwork
      */
-    CellularStateMachine(CellularDevice &device, events::EventQueue &queue, CellularNetwork &nw);
+    CellularStateMachine(CellularDevice &device, events::EventQueue &queue);
     ~CellularStateMachine();
 
     /** Cellular connection states
@@ -59,6 +59,7 @@ private:
         STATE_DEVICE_READY,
         STATE_SIM_PIN,
         STATE_REGISTERING_NETWORK,
+        STATE_MANUAL_REGISTERING_NETWORK,
         STATE_ATTACHING_NETWORK,
         STATE_MAX_FSM_STATE
     };
@@ -98,7 +99,7 @@ private:
      *  @param timeout      timeout array using seconds
      *  @param array_len    length of the array
      */
-    void set_retry_timeout_array(const uint16_t timeout[], int array_len);
+    void set_retry_timeout_array(uint16_t timeout[], int array_len);
 
     /** Sets the operator plmn which is used when registering to a network specified by plmn. If plmn is not set then automatic
      *  registering is used when registering to a cellular network. Does not start any operations.
@@ -146,15 +147,16 @@ private:
     void state_device_ready();
     void state_sim_pin();
     void state_registering();
+    void state_manual_registering_network();
     void state_attaching();
     void enter_to_state(CellularState state);
     void retry_state_or_fail();
     void continue_from_state(CellularState state);
+    bool is_registered_to_plmn();
     void report_failure(const char *msg);
     void event();
-    void device_ready_cb();
+    void ready_urc_cb();
     void pre_event(CellularState state);
-    bool check_is_target_reached();
 
     CellularDevice &_cellularDevice;
     CellularState _state;
@@ -163,7 +165,9 @@ private:
 
     Callback<void(nsapi_event_t, intptr_t)> _event_status_cb;
 
-    CellularNetwork &_network;
+    CellularNetwork *_network;
+    CellularPower *_power;
+    CellularSIM *_sim;
     events::EventQueue &_queue;
     rtos::Thread *_queue_thread;
 
@@ -177,10 +181,11 @@ private:
     int _event_id;
     const char *_plmn;
     bool _command_success;
+    bool _plmn_network_found;
     bool _is_retry;
     cell_callback_data_t _cb_data;
     nsapi_event_t _current_event;
-    int _status;
+    int _network_status; // Is there any active context or is modem attached to a network?
     PlatformMutex _mutex;
 };
 

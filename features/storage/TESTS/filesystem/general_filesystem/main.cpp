@@ -26,6 +26,9 @@
 #elif COMPONENT_SD
 #include "SDBlockDevice.h"
 #include "FATFileSystem.h"
+#elif COMPONENT_FLASHIAP
+#include "FlashIAPBlockDevice.h"
+#include "LittleFileSystem.h"
 #else
 #error [NOT_SUPPORTED] storage test not supported on this platform
 #endif
@@ -42,7 +45,6 @@ FILE *fd[test_files];
 
 BlockDevice *bd = BlockDevice::get_default_instance();
 FileSystem  *fs = FileSystem::get_default_instance();
-const char *bd_type;
 
 /*----------------help functions------------------*/
 
@@ -72,7 +74,6 @@ static void deinit()
 //init the blockdevice and reformat the filesystem
 static void bd_init_fs_reformat()
 {
-    bd_type = bd->get_type();
     init();
 }
 

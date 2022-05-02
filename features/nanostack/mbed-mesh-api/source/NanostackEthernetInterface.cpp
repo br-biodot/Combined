@@ -84,7 +84,7 @@ nsapi_error_t Nanostack::EthernetInterface::bringup(bool dhcp, const char *ip,
             return NSAPI_ERROR_DHCP_FAILURE; // sort of...
         }
     }
-    return NSAPI_ERROR_OK;
+    return 0;
 }
 
 nsapi_error_t NanostackEthernetInterface::do_initialize()
@@ -97,26 +97,8 @@ nsapi_error_t NanostackEthernetInterface::do_initialize()
 
 nsapi_error_t Nanostack::EthernetInterface::bringdown()
 {
-    nanostack_lock();
-    int8_t status = enet_tasklet_disconnect(true);
-    nanostack_unlock();
-
-    if (status == -1) {
+    if (enet_tasklet_disconnect(true)) {
         return NSAPI_ERROR_DEVICE_ERROR;
-    } else if (status == -2) {
-        return NSAPI_ERROR_NO_MEMORY;
-    } else if (status == -3) {
-        return NSAPI_ERROR_ALREADY;
-    } else if (status != 0) {
-        return NSAPI_ERROR_DEVICE_ERROR;
-    }
-
-    if (_blocking) {
-        int32_t count = disconnect_semaphore.wait(30000);
-
-        if (count <= 0) {
-            return NSAPI_ERROR_TIMEOUT;
-        }
     }
     return NSAPI_ERROR_OK;
 }

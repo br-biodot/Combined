@@ -40,9 +40,6 @@
 #include "LoRaRadio.h"
 #include "lora_phy_ds.h"
 
-/** LoRaPHY Class
- * Parent class for LoRa regional PHY implementations
- */
 class LoRaPHY : private mbed::NonCopyable<LoRaPHY> {
 
 public:
@@ -520,12 +517,6 @@ public:
      */
     bool is_custom_channel_plan_supported();
 
-    /**
-     * @brief get_rx_time_on_air(...) calculates the time the received spent on air
-     * @return time spent on air in milliseconds
-     */
-    uint32_t get_rx_time_on_air(uint8_t modem, uint16_t pkt_len);
-
 public: //Verifiers
 
     /**
@@ -632,8 +623,7 @@ protected:
      */
     void get_rx_window_params(float t_symbol, uint8_t min_rx_symbols,
                               float rx_error, float wakeup_time,
-                              uint32_t *window_length, uint32_t *window_length_ms,
-                              int32_t *window_offset,
+                              uint32_t *window_length, int32_t *window_offset,
                               uint8_t phy_dr);
 
     /**

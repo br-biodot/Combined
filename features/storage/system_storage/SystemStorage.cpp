@@ -25,10 +25,6 @@
 #include "SPIFBlockDevice.h"
 #endif
 
-#if COMPONENT_RSPIF
-#include "SPIFReducedBlockDevice.h"
-#endif
-
 #if COMPONENT_QSPIF
 #include "QSPIFBlockDevice.h"
 #endif
@@ -92,18 +88,6 @@ MBED_WEAK BlockDevice *BlockDevice::get_default_instance()
         MBED_CONF_SPIF_DRIVER_SPI_CLK,
         MBED_CONF_SPIF_DRIVER_SPI_CS,
         MBED_CONF_SPIF_DRIVER_SPI_FREQ
-    );
-
-    return &default_bd;
-
-#elif COMPONENT_RSPIF
-
-    static SPIFReducedBlockDevice default_bd(
-        MBED_CONF_RSPIF_DRIVER_SPI_MOSI,
-        MBED_CONF_RSPIF_DRIVER_SPI_MISO,
-        MBED_CONF_RSPIF_DRIVER_SPI_CLK,
-        MBED_CONF_RSPIF_DRIVER_SPI_CS,
-        MBED_CONF_RSPIF_DRIVER_SPI_FREQ
     );
 
     return &default_bd;
