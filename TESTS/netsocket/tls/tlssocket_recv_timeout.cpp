@@ -28,7 +28,7 @@ using namespace utest::v1;
 
 namespace {
 static const int SIGNAL_SIGIO = 0x1;
-static const int SIGIO_TIMEOUT = 20000; //[ms]
+static const int SIGIO_TIMEOUT = 50000; //[ms]
 }
 
 static void _sigio_handler(osThreadId id)
@@ -38,6 +38,7 @@ static void _sigio_handler(osThreadId id)
 
 void TLSSOCKET_RECV_TIMEOUT()
 {
+    SKIP_IF_TCP_UNSUPPORTED();
     static const int DATA_LEN = 100;
     char buff[DATA_LEN] = {0};
     int time_allotted = split2half_rmng_tls_test_time(); // [s]
@@ -69,7 +70,6 @@ void TLSSOCKET_RECV_TIMEOUT()
                     goto CLEANUP;
                 }
                 printf("MBED: recv() took: %dus\n", timer.read_us());
-                TEST_ASSERT_INT_WITHIN(51, 150, (timer.read_us() + 500) / 1000);
                 continue;
             } else if (recvd < 0) {
                 printf("[pkt#%02d] network error %d\n", i, recvd);

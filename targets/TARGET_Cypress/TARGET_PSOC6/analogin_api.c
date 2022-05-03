@@ -203,10 +203,5 @@ uint16_t analogin_read_u16(analogin_t *obj)
     return (uint16_t)(result);
 }
 
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
-}
-
 #endif // DEVICE_ANALOGIN
 

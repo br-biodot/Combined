@@ -114,9 +114,4 @@ float analogin_read(analogin_t *obj)
     return (float)value * (1.0f / (float)0xFFF); // 12 bits range
 }
 
-const PinMap *analogin_pinmap()
-{
-    return PinMap_ADC;
-}
-
 #endif

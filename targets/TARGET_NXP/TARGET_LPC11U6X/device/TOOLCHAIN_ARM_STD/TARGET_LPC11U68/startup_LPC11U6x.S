@@ -242,4 +242,3 @@ USBWAKEUP_IRQHandler
                 EXPORT  __heap_limit
 
                 END
-

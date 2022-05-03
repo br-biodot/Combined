@@ -490,9 +490,10 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
         __HAL_DMA_DISABLE(hqspi->hdma);
       }
 
-      /* MBED, see #10049 */
-      /* Clear Busy bit */
+#if defined(QSPI1_V1_0)
+/* Clear Busy bit */
       HAL_QSPI_Abort_IT(hqspi);
+#endif
       
       /* Change state of QSPI */
       hqspi->State = HAL_QSPI_STATE_READY;
@@ -528,10 +529,10 @@ void HAL_QSPI_IRQHandler(QSPI_HandleTypeDef *hqspi)
           }
         }
       }
-
-      /* MBED, see #10049 */
+#if defined(QSPI1_V1_0)
       /* Workaround - Extra data written in the FIFO at the end of a read transfer */
       HAL_QSPI_Abort_IT(hqspi);
+#endif /* QSPI_V1_0*/      
       
       /* Change state of QSPI */
       hqspi->State = HAL_QSPI_STATE_READY;
@@ -878,10 +879,11 @@ HAL_StatusTypeDef HAL_QSPI_Transmit(QSPI_HandleTypeDef *hqspi, uint8_t *pData, u
         {
           /* Clear Transfer Complete bit */
           __HAL_QSPI_CLEAR_FLAG(hqspi, QSPI_FLAG_TC);
-
-          /* MBED, see #10049 */
+          
+#if defined(QSPI1_V1_0)
           /* Clear Busy bit */
           status = HAL_QSPI_Abort(hqspi);
+#endif /* QSPI_V1_0 */ 
         }
       }
     
@@ -966,10 +968,11 @@ HAL_StatusTypeDef HAL_QSPI_Receive(QSPI_HandleTypeDef *hqspi, uint8_t *pData, ui
         {
           /* Clear Transfer Complete bit */
           __HAL_QSPI_CLEAR_FLAG(hqspi, QSPI_FLAG_TC);
-
-         /* MBED, see #10049 */
+          
+#if defined(QSPI1_V1_0)
          /* Workaround - Extra data written in the FIFO at the end of a read transfer */
          status = HAL_QSPI_Abort(hqspi);
+#endif /* QSPI_V1_0 */  
         }
       }
 
@@ -1918,10 +1921,6 @@ HAL_StatusTypeDef HAL_QSPI_Abort(QSPI_HandleTypeDef *hqspi)
     
     if (status == HAL_OK)
     {
-      /* MBED, see #10049 */
-      /* Reset functional mode configuration to indirect write mode by default */
-      CLEAR_BIT(hqspi->Instance->CCR, QUADSPI_CCR_FMODE);
-
       /* Update state */
       hqspi->State = HAL_QSPI_STATE_READY;
     }

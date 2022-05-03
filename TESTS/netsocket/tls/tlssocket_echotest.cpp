@@ -59,6 +59,7 @@ static void _sigio_handler(osThreadId id)
 
 void TLSSOCKET_ECHOTEST()
 {
+    SKIP_IF_TCP_UNSUPPORTED();
     sock = new TLSSocket;
     if (tlssocket_connect_to_echo_srv(*sock) != NSAPI_ERROR_OK) {
         printf("Error from tlssocket_connect_to_echo_srv\n");
@@ -69,28 +70,31 @@ void TLSSOCKET_ECHOTEST()
 
     int recvd;
     int sent;
-    int x = 0;
-    for (int pkt_s = pkt_sizes[x]; x < PKTS; pkt_s = pkt_sizes[x++]) {
+    for (int s_idx = 0; s_idx < sizeof(pkt_sizes) / sizeof(*pkt_sizes); s_idx++) {
+        int pkt_s = pkt_sizes[s_idx];
         fill_tx_buffer_ascii(tls_global::tx_buffer, BUFF_SIZE);
 
         sent = sock->send(tls_global::tx_buffer, pkt_s);
         if (sent < 0) {
-            printf("[Round#%02d] network error %d\n", x, sent);
+            printf("[Round#%02d] network error %d\n", s_idx, sent);
             TEST_FAIL();
-            TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, sock->close());
-            delete sock;
-            return;
+            break;
+        } else if (sent != pkt_s) {
+            printf("[%02d] sock.send return size %d does not match the expectation %d\n", s_idx, sent, pkt_s);
+            TEST_FAIL();
+            break;
         }
 
         int bytes2recv = sent;
         while (bytes2recv) {
             recvd = sock->recv(&(tls_global::rx_buffer[sent - bytes2recv]), bytes2recv);
             if (recvd < 0) {
-                printf("[Round#%02d] network error %d\n", x, recvd);
+                printf("[Round#%02d] network error %d\n", s_idx, recvd);
                 TEST_FAIL();
                 TEST_ASSERT_EQUAL(NSAPI_ERROR_OK, sock->close());
-                delete sock;
                 return;
+            }  else if (recvd > bytes2recv) {
+                TEST_FAIL_MESSAGE("sock.recv returned more bytes than requested");
             }
             bytes2recv -= recvd;
         }
@@ -102,40 +106,36 @@ void TLSSOCKET_ECHOTEST()
 
 void tlssocket_echotest_nonblock_receive()
 {
-    int recvd = sock->recv(&(tls_global::rx_buffer[bytes2recv_total - bytes2recv]), bytes2recv);
-    if (recvd == NSAPI_ERROR_WOULD_BLOCK) {
-        if (tc_exec_time.read() >= time_allotted) {
+    while (bytes2recv > 0) {
+        int recvd = sock->recv(&(tls_global::rx_buffer[bytes2recv_total - bytes2recv]), bytes2recv);
+        if (recvd == NSAPI_ERROR_WOULD_BLOCK) {
+            if (tc_exec_time.read() >= time_allotted) {
+                TEST_FAIL_MESSAGE("time_allotted exceeded");
+                receive_error = true;
+            }
+            return;
+        } else if (recvd < 0) {
+            printf("sock.recv returned an error %d", recvd);
+            TEST_FAIL();
             receive_error = true;
+        } else {
+            bytes2recv -= recvd;
         }
-        return;
-    } else if (recvd < 0) {
-        receive_error = true;
-    } else {
-        bytes2recv -= recvd;
-    }
 
-    if (bytes2recv == 0) {
-        TEST_ASSERT_EQUAL(0, memcmp(tls_global::tx_buffer, tls_global::rx_buffer, bytes2recv_total));
-
-        static int round = 0;
-        printf("[Recevr#%02d] bytes received: %d\n", round++, bytes2recv_total);
-        tx_sem.release();
-    } else if (receive_error || bytes2recv < 0) {
-        TEST_FAIL();
-        tx_sem.release();
+        if (bytes2recv == 0) {
+            TEST_ASSERT_EQUAL(0, memcmp(tls_global::tx_buffer, tls_global::rx_buffer, bytes2recv_total));
+            tx_sem.release();
+        } else if (receive_error || bytes2recv < 0) {
+            TEST_FAIL();
+            tx_sem.release();
+        }
+        // else - no error, not all bytes were received yet.
     }
-    // else - no error, not all bytes were received yet.
 }
 
 void TLSSOCKET_ECHOTEST_NONBLOCK()
 {
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
-    int j = 0;
-    int count = fetch_stats();
-    for (; j < count; j++) {
-        TEST_ASSERT_EQUAL(SOCK_CLOSED, tls_stats[j].state);
-    }
-#endif
+    SKIP_IF_TCP_UNSUPPORTED();
     sock = new TLSSocket;
     tc_exec_time.start();
     time_allotted = split2half_rmng_tls_test_time(); // [s]
@@ -146,7 +146,7 @@ void TLSSOCKET_ECHOTEST_NONBLOCK()
 
     int bytes2send;
     int sent;
-    int s_idx = 0;
+    ;
     receive_error = false;
     unsigned char *stack_mem = (unsigned char *)malloc(tls_global::TLS_OS_STACK_SIZE);
     TEST_ASSERT_NOT_NULL(stack_mem);
@@ -158,8 +158,8 @@ void TLSSOCKET_ECHOTEST_NONBLOCK()
     event_queue = &queue;
     TEST_ASSERT_EQUAL(osOK, receiver_thread->start(callback(&queue, &EventQueue::dispatch_forever)));
 
-    for (int pkt_s = pkt_sizes[s_idx]; s_idx < PKTS; ++s_idx) {
-        pkt_s = pkt_sizes[s_idx];
+    for (int s_idx = 0; s_idx < sizeof(pkt_sizes) / sizeof(*pkt_sizes); ++s_idx) {
+        int pkt_s = pkt_sizes[s_idx];
         bytes2recv = pkt_s;
         bytes2recv_total = pkt_s;
 
@@ -177,17 +177,16 @@ void TLSSOCKET_ECHOTEST_NONBLOCK()
                 continue;
             } else if (sent <= 0) {
                 printf("[Sender#%02d] network error %d\n", s_idx, sent);
-
                 TEST_FAIL();
                 goto END;
             }
             bytes2send -= sent;
         }
-        printf("[Sender#%02d] bytes sent: %d\n", s_idx, pkt_s);
-#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLE
-        count = fetch_stats();
-        for (j = 0; j < count; j++) {
-            if ((tls_stats[j].state == SOCK_OPEN) && (tls_stats[j].proto == NSAPI_TLS)) {
+#if MBED_CONF_NSAPI_SOCKET_STATS_ENABLED
+        int count = fetch_stats();
+        int j = 0;
+        for (; j < count; j++) {
+            if ((tls_stats[j].state == SOCK_OPEN) && (tls_stats[j].proto == NSAPI_TCP)) {
                 break;
             }
         }

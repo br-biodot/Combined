@@ -235,13 +235,9 @@ void pwmout_init(pwmout_t *obj, PinName pin)
 
 void pwmout_free(pwmout_t *obj)
 {
-#if DEVICE_SLEEP && DEVICE_LPTICKER
-    if (!Cy_SysPm_UnregisterCallback(&obj->pm_callback_handler)) {
-        error("PM callback unregistration failed!");
-    }
-#endif
-    Cy_TCPWM_PWM_Disable(obj->base, obj->counter_id);
-    Cy_TCPWM_PWM_DeInit(obj->base, obj->counter_id, &pwm_config);
+    /* Does nothing because it is not called in the MBED PWMOUT driver
+    * destructor. The pwmout_init handles multiple calls of constructor.
+    */
 }
 
 void pwmout_write(pwmout_t *obj, float percent)
@@ -342,9 +338,4 @@ void pwmout_pulsewidth_us(pwmout_t *obj, int us)
         us = 0;
     }
     pwm_start(obj, obj->period, us);
-}
-
-const PinMap *pwmout_pinmap()
-{
-    return PinMap_PWM_OUT;
 }

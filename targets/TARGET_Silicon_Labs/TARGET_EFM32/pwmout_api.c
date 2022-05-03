@@ -352,9 +352,4 @@ void pwmout_pulsewidth_us(pwmout_t *obj, int us)
     TIMER_CompareBufSet(PWM_TIMER, obj->channel, width_cycles);
 }
 
-const PinMap *pwmout_pinmap()
-{
-    return PinMap_PWM;
-}
-
 #endif

@@ -1,6 +1,6 @@
 /***************************************************************************//**
 * \file cy_syslib.c
-* \version 2.30
+* \version 2.20
 *
 *  Description:
 *   Provides system API implementation for the SysLib driver.
@@ -52,11 +52,7 @@
 #endif /* (CY_ARM_FAULT_DEBUG == CY_ARM_FAULT_DEBUG_ENABLED) */
 
 #if defined(__ARMCC_VERSION)
-        #if (__ARMCC_VERSION >= 6010050)
-            static void Cy_SysLib_AsmInfiniteLoop(void) { __ASM (" b . "); };
-        #else
-            static __ASM void Cy_SysLib_AsmInfiniteLoop(void) { b . };
-        #endif /* (__ARMCC_VERSION >= 6010050) */
+    static __ASM void Cy_SysLib_AsmInfiniteLoop(void) { b . };
 #endif  /* (__ARMCC_VERSION) */
 
 

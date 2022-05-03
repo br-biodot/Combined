@@ -31,11 +31,6 @@ UBLOX_AT_CellularNetwork::~UBLOX_AT_CellularNetwork()
     }
 }
 
-AT_CellularNetwork::RegistrationMode UBLOX_AT_CellularNetwork::has_registration(RegistrationType reg_type)
-{
-    return (reg_type == C_REG || reg_type == C_GREG) ? RegistrationModeLAC : RegistrationModeDisable;
-}
-
 nsapi_error_t UBLOX_AT_CellularNetwork::set_access_technology_impl(RadioAccessTechnology opRat)
 {
     nsapi_error_t ret = NSAPI_ERROR_OK;
@@ -69,5 +64,5 @@ nsapi_error_t UBLOX_AT_CellularNetwork::set_access_technology_impl(RadioAccessTe
         }
     }
 
-    return(ret);
+    return (ret);
 }

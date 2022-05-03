@@ -19,8 +19,8 @@
 #include "device.h"
 #include "mbed_error.h"
 #include "lp_ticker_api.h"
-#include "cy_mcwdt.h"
-#include "cy_sysint.h"
+#include "device/drivers/peripheral/mcwdt/cy_mcwdt.h"
+#include "device/drivers/peripheral/sysint/cy_sysint.h"
 #include "psoc6_utils.h"
 
 #if DEVICE_LPTICKER
@@ -63,7 +63,7 @@ static cy_stc_mcwdt_config_t config = {
 // Interrupt configuration.
 static cy_stc_sysint_t lpt_sysint_config = {
 #if defined(TARGET_MCU_PSOC6_M0)
-    .intrSrc = CY_M0_CORE_IRQ_CHANNEL_LP_TICKER,
+    .intrSrc = (IRQn_Type)(-1),
     .cm0pSrc = LPT_INTERRUPT_SOURCE,
 #else
     .intrSrc = LPT_INTERRUPT_SOURCE,
@@ -82,10 +82,11 @@ void lp_ticker_init(void)
     }
 
 #ifdef TARGET_MCU_PSOC6_M0
-    // Reserve NVIC channel.
-    if (cy_m0_nvic_reserve_channel(CY_M0_CORE_IRQ_CHANNEL_LP_TICKER, CY_LP_TICKER_IRQN_ID) == (IRQn_Type)(-1)) {
+    // Allocate NVIC channel.
+    lpt_sysint_config.intrSrc = cy_m0_nvic_allocate_channel(CY_LP_TICKER_IRQN_ID);
+    if (lpt_sysint_config.intrSrc == (IRQn_Type)(-1)) {
         // No free NVIC channel.
-        error("LP_TICKER NVIC channel reservation conflict.");
+        error("LP_TICKER NVIC channel allocation failed.");
         return;
     }
 #endif

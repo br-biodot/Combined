@@ -27,10 +27,10 @@
 #include "serial_api.h"
 #include "psoc6_utils.h"
 
-#include "cy_sysclk.h"
-#include "cy_gpio.h"
-#include "cy_scb_uart.h"
-#include "cy_sysint.h"
+#include "drivers/peripheral/sysclk/cy_sysclk.h"
+#include "drivers/peripheral/gpio/cy_gpio.h"
+#include "drivers/peripheral/scb/cy_scb_uart.h"
+#include "drivers/peripheral/sysint/cy_sysint.h"
 
 #define UART_OVERSAMPLE                 12
 #define UART_DEFAULT_BAUDRATE           115200
@@ -587,26 +587,6 @@ void serial_set_flow_control(serial_t *obj_in, FlowControl type, PinName rxflow,
 
     serial_init_peripheral(obj);
     serial_init_flow_pins(obj);
-}
-
-const PinMap *serial_tx_pinmap()
-{
-    return PinMap_UART_TX;
-}
-
-const PinMap *serial_rx_pinmap()
-{
-    return PinMap_UART_RX;
-}
-
-const PinMap *serial_cts_pinmap()
-{
-    return PinMap_UART_CTS;
-}
-
-const PinMap *serial_rts_pinmap()
-{
-    return PinMap_UART_RTS;
 }
 
 #if DEVICE_SERIAL_ASYNCH

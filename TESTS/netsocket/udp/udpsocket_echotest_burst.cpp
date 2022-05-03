@@ -29,7 +29,7 @@ static const int SIGNAL_SIGIO = 0x1;
 static const int SIGIO_TIMEOUT = 5000; //[ms]
 static const int RECV_TIMEOUT = 1; //[s]
 
-static const int BURST_CNT = 100;
+static const int BURST_CNT = 20;
 static const int BURST_PKTS = 5;
 static const int PKG_SIZES[BURST_PKTS] = {100, 200, 300, 120, 500};
 static const int RECV_TOTAL = 1220;
@@ -91,7 +91,11 @@ void UDPSOCKET_ECHOTEST_BURST()
     SocketAddress temp_addr;
     for (int i = 0; i < BURST_CNT; i++) {
         for (int x = 0; x < BURST_PKTS; x++) {
-            TEST_ASSERT_EQUAL(tx_buffers[x].len, sock.sendto(udp_addr, tx_buffers[x].payload, tx_buffers[x].len));
+            int sent = sock.sendto(udp_addr, tx_buffers[x].payload, tx_buffers[x].len);
+            if (check_oversized_packets(sent, tx_buffers[x].len)) {
+                TEST_IGNORE_MESSAGE("This device does not handle oversized packets");
+            }
+            TEST_ASSERT_EQUAL(tx_buffers[x].len, sent);
         }
 
         bt_total = 0;
@@ -130,7 +134,7 @@ void UDPSOCKET_ECHOTEST_BURST()
             ok_bursts++;
         } else {
             drop_bad_packets(sock, TIMEOUT);
-            printf("[%02d] burst failure\n", i);
+            printf("[%02d] burst failure, rcv %d\n", i, bt_total);
         }
     }
 
@@ -168,7 +172,12 @@ void UDPSOCKET_ECHOTEST_BURST_NONBLOCK()
     int bt_total = 0;
     for (int i = 0; i < BURST_CNT; i++) {
         for (int x = 0; x < BURST_PKTS; x++) {
-            TEST_ASSERT_EQUAL(tx_buffers[x].len, sock.sendto(udp_addr, tx_buffers[x].payload, tx_buffers[x].len));
+            nsapi_size_or_error_t sent = sock.sendto(udp_addr, tx_buffers[x].payload, tx_buffers[x].len);
+            if (sent != NSAPI_ERROR_WOULD_BLOCK) {
+                TEST_ASSERT_EQUAL(tx_buffers[x].len, sent);
+            } else {
+                x--;
+            }
         }
 
         recvd = 0;

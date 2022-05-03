@@ -19,6 +19,7 @@
 #if DEVICEKEY_ENABLED
 #include "mbedtls/config.h"
 #include "mbedtls/cmac.h"
+#include "mbedtls/platform.h"
 #include "KVStore.h"
 #include "TDBStore.h"
 #include "KVMap.h"
@@ -59,15 +60,25 @@ namespace mbed {
 
 DeviceKey::DeviceKey()
 {
+
     int ret = kv_init_storage_config();
     if (ret != MBED_SUCCESS) {
         tr_error("DeviceKey: Fail to initialize KvStore configuration.");
     }
+#if defined(MBEDTLS_PLATFORM_C)
+    ret = mbedtls_platform_setup(NULL);
+    if (ret != MBED_SUCCESS) {
+        tr_error("DeviceKey: Fail in mbedtls_platform_setup.");
+    }
+#endif /* MBEDTLS_PLATFORM_C */
     return;
 }
 
 DeviceKey::~DeviceKey()
 {
+#if defined(MBEDTLS_PLATFORM_C)
+    mbedtls_platform_teardown(NULL);
+#endif /* MBEDTLS_PLATFORM_C */
     return;
 }
 
@@ -158,7 +169,7 @@ int DeviceKey::read_key_from_kvstore(uint32_t *output, size_t &size)
         return DEVICEKEY_NOT_FOUND;
     }
 
-    int kvStatus = ((TDBStore *)inner_store)->reserved_data_get(output, size);
+    int kvStatus = ((TDBStore *)inner_store)->reserved_data_get(output, size, &size);
     if (MBED_ERROR_ITEM_NOT_FOUND == kvStatus) {
         return DEVICEKEY_NOT_FOUND;
     }

@@ -226,13 +226,6 @@ typedef enum {
     QSPI_IO_2       = P11_4,
     QSPI_IO_3       = P11_3,
     QSPI_SEL        = P11_2,
-    
-    QSPI_FLASH1_IO0 = QSPI_IO_0,
-    QSPI_FLASH1_IO1 = QSPI_IO_1,
-    QSPI_FLASH1_IO2 = QSPI_IO_2,
-    QSPI_FLASH1_IO3 = QSPI_IO_3,
-    QSPI_FLASH1_SCK = QSPI_CLK,
-    QSPI_FLASH1_CSN = QSPI_SEL,
 
     // Standardized interfaces names
     STDIO_UART_TX   = UART_TX,
@@ -257,9 +250,7 @@ typedef enum {
 
     USBTX   = UART_TX,
     USBRX   = UART_RX,
-
-    CY_WIFI_HOST_WAKE     = P2_7,
-
+    
     // Not connected
     AOUT    = (int)0xFFFFFFFF
 } PinName;

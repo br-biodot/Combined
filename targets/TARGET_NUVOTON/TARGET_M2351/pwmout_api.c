@@ -205,9 +205,4 @@ static void pwmout_config(pwmout_t* obj, int start)
     }
 }
 
-const PinMap *pwmout_pinmap()
-{
-    return PinMap_PWM;
-}
-
 #endif

@@ -24,10 +24,10 @@
 #include "spi_api.h"
 #include "psoc6_utils.h"
 
-#include "cy_sysclk.h"
-#include "cy_gpio.h"
-#include "cy_scb_spi.h"
-#include "cy_sysint.h"
+#include "drivers/peripheral/sysclk/cy_sysclk.h"
+#include "drivers/peripheral/gpio/cy_gpio.h"
+#include "drivers/peripheral/scb/cy_scb_spi.h"
+#include "drivers/peripheral/sysint/cy_sysint.h"
 
 #define SPI_DEFAULT_SPEED               100000
 #define NUM_SPI_PORTS                   8
@@ -533,46 +533,6 @@ int  spi_busy(spi_t *obj)
 uint8_t spi_get_module(spi_t *obj_in)
 {
     return (uint8_t) OBJ_P(obj_in)->spi_id;
-}
-
-const PinMap *spi_master_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_master_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_master_clk_pinmap()
-{
-    return PinMap_SPI_SCLK;
-}
-
-const PinMap *spi_master_cs_pinmap()
-{
-    return PinMap_SPI_SSEL;
-}
-
-const PinMap *spi_slave_mosi_pinmap()
-{
-    return PinMap_SPI_MOSI;
-}
-
-const PinMap *spi_slave_miso_pinmap()
-{
-    return PinMap_SPI_MISO;
-}
-
-const PinMap *spi_slave_clk_pinmap()
-{
-    return PinMap_SPI_SCLK;
-}
-
-const PinMap *spi_slave_cs_pinmap()
-{
-    return PinMap_SPI_SSEL;
 }
 
 #if DEVICE_SPI_ASYNCH

@@ -21,7 +21,6 @@
 
 #include "cmsis.h"
 #include "pinmap.h"
-#include "PeripheralPins.h"
 #include <string.h>
 
 #define DAC_POSITIVE_FULL_SCALE  0x7E0
@@ -187,11 +186,6 @@ float analogout_read(dac_t *obj)
 uint16_t analogout_read_u16(dac_t *obj)
 {
     return (uint16_t)0xFFFF;
-}
-
-const PinMap *analogout_pinmap()
-{
-    return PinMap_DAC;
 }
 
 #endif

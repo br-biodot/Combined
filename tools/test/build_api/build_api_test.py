@@ -18,20 +18,24 @@ limitations under the License.
 import unittest
 from collections import namedtuple
 from mock import patch, MagicMock
-from tools.build_api import prepare_toolchain, build_project, build_library, merge_region_list
+from tools.build_api import prepare_toolchain, build_project, build_library
+from tools.regions import merge_region_list
 from tools.resources import Resources
 from tools.toolchains import TOOLCHAINS
 from tools.notifier.mock import MockNotifier
-from tools.config import Region
+from tools.config import Region, Config, ConfigException
 from tools.utils import ToolException
 from intelhex import IntelHex
-import intelhex
+
 """
 Tests for build_api.py
 """
 make_mock_target = namedtuple(
-    "Target", "init_hooks name features core supported_toolchains")
-
+    "Target", "get_post_build_hook name features core supported_toolchains build_tools_metadata")
+#Add ARMC5 to the supported_toolchains list as ARMC5 actually refers ARM Compiler 5 and is needed by ARM/ARM_STD classes when it checks for supported toolchains
+TOOLCHAINS.add("ARMC5")
+#Make a mock build_tools_metadata
+mock_build_tools_metadata = {u'version':0, u'public':False}
 
 class BuildApiTests(unittest.TestCase):
     """
@@ -62,7 +66,6 @@ class BuildApiTests(unittest.TestCase):
     @patch('tools.toolchains.mbedToolchain.need_update',
            side_effect=[i % 2 for i in range(3000)])
     @patch('os.mkdir')
-    @patch('tools.toolchains.exists', return_value=True)
     @patch('tools.toolchains.mbedToolchain.dump_build_profile')
     @patch('tools.utils.run_cmd', return_value=(b'', b'', 0))
     def test_always_complete_build(self, *_):
@@ -91,8 +94,8 @@ class BuildApiTests(unittest.TestCase):
         :return:
         """
         app_config = "app_config"
-        mock_target = make_mock_target(lambda _, __ : None,
-                                       "Junk", [], "Cortex-M3", TOOLCHAINS)
+        mock_target = make_mock_target(lambda _ : None,
+                                       "Junk", [], "Cortex-M3", TOOLCHAINS, mock_build_tools_metadata)
         mock_config_init.return_value = namedtuple(
             "Config", "target has_regions name")(mock_target, False, None)
 
@@ -110,8 +113,8 @@ class BuildApiTests(unittest.TestCase):
         :param mock_config_init: mock of Config __init__
         :return:
         """
-        mock_target = make_mock_target(lambda _, __ : None,
-                                       "Junk", [], "Cortex-M3", TOOLCHAINS)
+        mock_target = make_mock_target(lambda _ : None,
+                                       "Junk", [], "Cortex-M3", TOOLCHAINS, mock_build_tools_metadata)
         mock_config_init.return_value = namedtuple(
             "Config", "target has_regions name")(mock_target, False, None)
 
@@ -243,11 +246,14 @@ class BuildApiTests(unittest.TestCase):
         self.assertEqual(args[1]['app_config'], None,
                          "prepare_toolchain was called with an incorrect app_config")
 
-    @patch('tools.build_api.intelhex_offset')
+    @patch('tools.regions.intelhex_offset')
     @patch('tools.config')
     def test_merge_region_no_fit(self, mock_config, mock_intelhex_offset):
         """
-        Test that merge region fails as expected when part size overflows region size.
+        Test that merge_region_list call fails when part size overflows region size.
+        :param mock_config: config object that is mocked.
+        :param mock_intelhex_offset: mocked intel_hex_offset call.
+        :return:
         """
         max_addr = 87444
         # create a dummy hex file with above max_addr
@@ -273,6 +279,91 @@ class BuildApiTests(unittest.TestCase):
 
         self.assertTrue(toolexception, "Expected ToolException not raised")
 
+
+    @patch('tools.config.exists')
+    @patch('tools.config.isabs')
+    @patch('tools.config.intelhex_offset')
+    def test_bl_pieces(self, mock_intelhex_offset, mock_exists, mock_isabs):
+        """
+
+        :param mock_intelhex_offset: mock intel_hex_ofset call
+        :param mock_exists: mock the file exists call
+        :param mock_isabs: mock the isabs call
+        :return:
+        """
+        """
+        Test that merge region fails as expected when part size overflows region size.
+        """
+        cfg = Config('NRF52_DK')
+        mock_exists.return_value = True
+        mock_isabs.return_value = True
+        max = 0x960
+        #create mock MBR and BL and merge them
+        mbr = IntelHex()
+        for v in range(max):
+            mbr[v] = v
+
+        bl = IntelHex()
+        min = 0x16000
+        max = 0x22000
+        for v in range(min, max):
+            bl[v] = v
+        mbr.merge(bl)
+
+        mock_intelhex_offset.return_value = mbr
+
+        # Place application within the bootloader and verify
+        # that config exception is generated
+        cfg.target.bootloader_img = True
+        cfg.target.app_offset = min + 0x200
+        cfg.target.restrict_size = '4096'
+
+        ce = False
+        if cfg.has_regions:
+            try:
+                for r in list(cfg.regions):
+                    print(r)
+            except ConfigException:
+                    ce = True
+
+        self.assertTrue(ce)
+
+    @patch('tools.config.exists')
+    @patch('tools.config.isabs')
+    @patch('tools.config.intelhex_offset')
+    def test_bl_too_large(self, mock_intelhex_offset, mock_exists, mock_isabs):
+        """
+        Create a BL that's too large to fit in ROM and test that exception is
+        generated.
+        :param mock_intelhex_offset: mock intel hex
+        :param mock_exists: mock the file exists call
+        :param mock_isabs: mock the isabs call
+        :return:
+        """
+        cfg = Config('NRF52_DK')
+        mock_exists.return_value = True
+        mock_isabs.return_value = True
+
+        # setup the hex file
+        bl = IntelHex()
+        min = 0x0
+        max = 0x88000
+        for v in range(max):
+            bl[v] = v
+        mock_intelhex_offset.return_value = bl
+        cfg.target.bootloader_img = True
+        ce = False
+
+        if cfg.has_regions:
+            try:
+                for r in list(cfg.regions):
+                    print(r)
+            except ConfigException as e:
+                print("args %s" % (e.args))
+                if (e.args[0] == "bootloader segments don't fit within rom"):
+                    ce = True
+
+        self.assertTrue(ce)
 
 if __name__ == '__main__':
     unittest.main()
